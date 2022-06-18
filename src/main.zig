@@ -1,6 +1,7 @@
 const std = @import("std");
 const expect = std.testing.expect;
 const expectEqual = std.testing.expectEqual;
+const expectApproxEqAbs = std.testing.expectApproxEqAbs;
 
 const Tuple = @Vector(4, f32);
 const Vector = Tuple;
@@ -24,6 +25,26 @@ pub fn isPoint(t: Tuple) bool {
 
 pub fn isVector(t: Tuple) bool {
     return t[3] == 0;
+}
+
+pub fn dot(u: Vector, v: Vector) f32 {
+    return u[0] * v[0] + u[1] * v[1] + u[2] * v[2] + u[3] * v[3];
+}
+
+pub fn cross(u: Vector, v: Vector) Vector {
+    return .{
+        u[1] * v[2] - u[2] * v[1],
+        u[2] * v[0] - u[0] * v[2],
+        u[0] * v[1] - u[1] * v[0],
+    };
+}
+
+pub fn magnitude(v: Vector) f32 {
+    return @sqrt(dot(v, v));
+}
+
+pub fn normalize(v: Vector) Vector {
+    return v / @splat(4, @as(f32, magnitude(v)));
 }
 
 test "a tuple with w=1.0 is a point" {
@@ -108,4 +129,65 @@ test "multiplying a tuple by a fraction" {
 test "dividing a tuple by a scalar" {
     const a = tuple(1, -2, 3, -4);
     try expectEqual(a / @splat(4, @as(f32, 2)), tuple(0.5, -1, 1.5, -2));
+}
+
+test "the dot product of two tuples" {
+    const a = vector(1, 2, 3);
+    const b = vector(2, 3, 4);
+    try expectEqual(dot(a, b), 20);
+}
+
+test "computing the magnitude of vector(1, 0, 0)" {
+    const v = vector(1, 0, 0);
+    try expectEqual(magnitude(v), 1);
+}
+
+test "computing the magnitude of vector(0, 1, 0)" {
+    const v = vector(0, 1, 0);
+    try expectEqual(magnitude(v), 1);
+}
+
+test "computing the magnitude of vector(0, 0, 1)" {
+    const v = vector(0, 0, 1);
+    try expectEqual(magnitude(v), 1);
+}
+
+test "computing the magnitude of vector(1, 2, 3)" {
+    const v = vector(1, 2, 3);
+    try expectEqual(magnitude(v), @sqrt(14.0));
+}
+
+test "computing the magnitude of vector(-1, -2, -3)" {
+    const v = vector(-1, -2, -3);
+    try expectEqual(magnitude(v), @sqrt(14.0));
+}
+
+test "normalizing vector(4, 0, 0) gives (1, 0, 0)" {
+    const v = vector(4, 0, 0);
+    try expectEqual(normalize(v), vector(1, 0, 0));
+}
+
+test "normalizing vector(1, 2, 3)" {
+    const v = normalize(vector(1, 2, 3));
+    const a = @sqrt(14.0);
+    const e = 0.00001;
+
+    try expectApproxEqAbs(@floatCast(f32, 1 / a), v[0], e);
+    try expectApproxEqAbs(@floatCast(f32, 2 / a), v[1], e);
+    try expectApproxEqAbs(@floatCast(f32, 3 / a), v[2], e);
+}
+
+test "the magnitude of a normalized vector" {
+    const v = vector(1, 2, 3);
+    const n = normalize(v);
+    const e = 0.00001;
+    try expectApproxEqAbs(magnitude(n), 1, e);
+}
+
+test "the cross product of two vectors" {
+    const a = vector(1, 2, 3);
+    const b = vector(2, 3, 4);
+
+    try expectEqual(cross(a, b), vector(-1, 2, -1));
+    try expectEqual(cross(b, a), vector(1, -2, 1));
 }
