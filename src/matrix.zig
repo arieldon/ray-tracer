@@ -66,6 +66,81 @@ fn typeMulOp(comptime t0: type, t1: type) type {
     }
 }
 
+pub fn transpose(m: Matrix) Matrix {
+    var n: Matrix = undefined;
+
+    // TODO Vectorize.
+    var row: u8 = 0;
+    while (row < 4) : (row += 1) {
+        var col: u8 = 0;
+        while (col < 4) : (col += 1) {
+            n[row][col] = m[col][row];
+        }
+    }
+
+    return n;
+}
+
+pub fn determinant(m: anytype) f32 {
+    comptime {
+        const t = @TypeOf(m);
+        if (t != Matrix2x2 and t != Matrix3x3 and t != Matrix4x4) {
+            @compileError("Unable to calculate determinant of type " ++ @typeName(t) ++ ".");
+        }
+    }
+
+    var det: f32 = 0;
+
+    if (m.len == 2) {
+        det = m[0][0] * m[1][1] - m[0][1] * m[1][0];
+    } else {
+        var col: u8 = 0;
+        while (col < m.len) : (col += 1) det += m[0][col] * cofactor(m, 0, col);
+    }
+
+    return det;
+}
+
+fn submatrix(m: anytype, row: u32, col: u32) typeSubmatrix(@TypeOf(m)) {
+    var n: typeSubmatrix(@TypeOf(m)) = undefined;
+
+    var y: u32 = 0;
+    var j: u32 = 0;
+    while (j < m.len) : (j += 1) {
+        if (j == row) continue;
+        var x: u32 = 0;
+        var i: u32 = 0;
+        while (i < m.len) : (i += 1) {
+            if (i == col) continue;
+            n[y][x] = m[j][i];
+            x += 1;
+        }
+        y += 1;
+    }
+
+    return n;
+}
+
+fn typeSubmatrix(comptime t: type) type {
+    return switch (t) {
+        Matrix4x4 => Matrix3x3,
+        Matrix3x3 => Matrix2x2,
+        else => @compileError("Unable to determine type of submatrix for type " ++ @typeName(t) ++ "."),
+    };
+}
+
+fn minor(m: anytype, row: u32, col: u32) f32 {
+    return determinant(submatrix(m, row, col));
+}
+
+fn cofactor(m: anytype, row: u32, col: u32) f32 {
+    if ((row + col) % 2 == 0) {
+        return minor(m, row, col);
+    } else {
+        return -minor(m, row, col);
+    }
+}
+
 test "constructing and inspecting a 4x4 matrix" {
     const m = Matrix{
         .{ 1, 2, 3, 4 },
@@ -155,4 +230,110 @@ test "multiplying a matrix by the identity matrix" {
         .{ 4, 8, 16, 32 },
     };
     try expectEqual(mulMatrix(a, identity), a);
+}
+
+test "transposing a matrix" {
+    const a = Matrix{
+        .{ 0, 9, 3, 0 },
+        .{ 9, 8, 0, 8 },
+        .{ 1, 8, 5, 3 },
+        .{ 0, 0, 5, 8 },
+    };
+    const b = Matrix{
+        .{ 0, 9, 1, 0 },
+        .{ 9, 8, 8, 0 },
+        .{ 3, 0, 5, 5 },
+        .{ 0, 8, 3, 8 },
+    };
+    try expectEqual(transpose(a), b);
+}
+
+test "transposing the identity matrix" {
+    const a = transpose(identity);
+    try expectEqual(a, identity);
+}
+
+test "calculating the determinant of a 2x2 matrix" {
+    const a = Matrix2x2{
+        .{ 1, 5 },
+        .{ -3, 2 },
+    };
+    try expectEqual(determinant(a), 17);
+}
+
+test "a submatrix of a 3x3 matrix is a 2x2 matrix" {
+    const a = Matrix3x3{
+        .{ 1, 5, 0 },
+        .{ -3, 2, 7 },
+        .{ 0, 6, -3 },
+    };
+    const b = Matrix2x2{
+        .{ -3, 2 },
+        .{ 0, 6 },
+    };
+    try expectEqual(submatrix(a, 0, 2), b);
+}
+
+test "a submatrix of a 4x4 matrix is a 3x3 matrix" {
+    const a = Matrix4x4{
+        .{ -6, 1, 1, 6 },
+        .{ -8, 5, 8, 6 },
+        .{ -1, 0, 8, 2 },
+        .{ -7, 1, -1, 1 },
+    };
+    const b = Matrix3x3{
+        .{ -6, 1, 6 },
+        .{ -8, 8, 6 },
+        .{ -7, -1, 1 },
+    };
+    try expectEqual(submatrix(a, 2, 1), b);
+}
+
+test "calculating a minor of a 3x3 matrix" {
+    const a = Matrix3x3{
+        .{ 3, 5, 0 },
+        .{ 2, -1, -7 },
+        .{ 6, -1, 5 },
+    };
+    const b = submatrix(a, 1, 0);
+    try expectEqual(determinant(b), 25);
+    try expectEqual(minor(a, 1, 0), 25);
+}
+
+test "calculating a cofactor of a 3x3 matrix" {
+    const a = Matrix3x3{
+        .{ 3, 5, 0 },
+        .{ 2, -1, -7 },
+        .{ 6, -1, 5 },
+    };
+    try expectEqual(minor(a, 0, 0), -12);
+    try expectEqual(cofactor(a, 0, 0), -12);
+    try expectEqual(minor(a, 1, 0), 25);
+    try expectEqual(cofactor(a, 1, 0), -25);
+}
+
+test "calculating the determinant of a 3x3 matrix" {
+    const a = Matrix3x3{
+        .{ 1, 2, 6 },
+        .{ -5, 8, -4 },
+        .{ 2, 6, 4 },
+    };
+    try expectEqual(cofactor(a, 0, 0), 56);
+    try expectEqual(cofactor(a, 0, 1), 12);
+    try expectEqual(cofactor(a, 0, 2), -46);
+    try expectEqual(determinant(a), -196);
+}
+
+test "calculating the determinant of a 4x4 matrix" {
+    const a = Matrix4x4{
+        .{ -2, -8, 3, 5 },
+        .{ -3, 1, 7, 3 },
+        .{ 1, 2, -9, 6 },
+        .{ -6, 7, 7, -9 },
+    };
+    try expectEqual(cofactor(a, 0, 0), 690);
+    try expectEqual(cofactor(a, 0, 1), 447);
+    try expectEqual(cofactor(a, 0, 2), 210);
+    try expectEqual(cofactor(a, 0, 3), 51);
+    try expectEqual(determinant(a), -4071);
 }
