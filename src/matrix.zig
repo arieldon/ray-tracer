@@ -18,8 +18,13 @@ const identity = Matrix{
     .{ 0, 0, 0, 1 },
 };
 
-pub fn equal(a: Matrix, b: Matrix) bool {
-    for (a) |_, i| if (@reduce(.And, a[i] != b[i])) return false;
+pub fn equal(a: Matrix, b: Matrix, epsilon: f32) bool {
+    var row: u8 = 0;
+    while (row < 4) : (row += 1) {
+        if (@reduce(.And, @fabs(a[row] - b[row]) > @splat(4, epsilon))) {
+            return false;
+        }
+    }
     return true;
 }
 
@@ -170,7 +175,7 @@ test "matrix equality with identical matrices" {
         .{ 9, 8, 7, 6 },
         .{ 5, 4, 3, 2 },
     };
-    try expect(equal(a, b));
+    try expect(equal(a, b, 0.00001));
 }
 
 test "matrix equality with different matrices" {
@@ -186,7 +191,7 @@ test "matrix equality with different matrices" {
         .{ 8, 7, 6, 5 },
         .{ 4, 3, 2, 1 },
     };
-    try expect(!equal(a, b));
+    try expect(!equal(a, b, 0.00001));
 }
 
 test "multiplying two matrices" {
