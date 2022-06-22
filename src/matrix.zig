@@ -5,6 +5,8 @@ const expectEqual = std.testing.expectEqual;
 const tup = @import("tuple.zig");
 const Tuple = tup.Tuple;
 const tuple = tup.tuple;
+const point = tup.point;
+const vector = tup.vector;
 
 pub const Matrix = Matrix4x4;
 pub const Matrix4x4 = [4]@Vector(4, f32);
@@ -165,6 +167,65 @@ pub fn inverse(m: Matrix) Matrix {
     }
 
     return n;
+}
+
+pub fn translation(x: f32, y: f32, z: f32) Matrix {
+    return .{
+        .{ 1, 0, 0, x },
+        .{ 0, 1, 0, y },
+        .{ 0, 0, 1, z },
+        .{ 0, 0, 0, 1 },
+    };
+}
+
+pub fn scaling(x: f32, y: f32, z: f32) Matrix {
+    return .{
+        .{ x, 0, 0, 0 },
+        .{ 0, y, 0, 0 },
+        .{ 0, 0, z, 0 },
+        .{ 0, 0, 0, 1 },
+    };
+}
+
+pub fn rotationX(r: f32) Matrix {
+    return .{
+        .{ 1, 0, 0, 0 },
+        .{ 0, @cos(r), -@sin(r), 0 },
+        .{ 0, @sin(r), @cos(r), 0 },
+        .{ 0, 0, 0, 1 },
+    };
+}
+
+pub fn rotationY(r: f32) Matrix {
+    return .{
+        .{
+            @cos(r),
+            0,
+            @sin(r),
+            0,
+        },
+        .{ 0, 1, 0, 0 },
+        .{ -@sin(r), 0, @cos(r), 0 },
+        .{ 0, 0, 0, 1 },
+    };
+}
+
+pub fn rotationZ(r: f32) Matrix {
+    return .{
+        .{ @cos(r), -@sin(r), 0, 0 },
+        .{ @sin(r), @cos(r), 0, 0 },
+        .{ 0, 0, 1, 0 },
+        .{ 0, 0, 0, 1 },
+    };
+}
+
+pub fn shearing(xy: f32, xz: f32, yx: f32, yz: f32, zx: f32, zy: f32) Matrix {
+    return .{
+        .{ 1, xy, xz, 0 },
+        .{ yx, 1, yz, 0 },
+        .{ zx, zy, 1, 0 },
+        .{ 0, 0, 0, 1 },
+    };
 }
 
 test "constructing and inspecting a 4x4 matrix" {
@@ -456,4 +517,140 @@ test "multiplying a product by its inverse" {
     };
     const c = mul(a, b);
     try expect(equal(mul(c, inverse(b)), a, 0.00001));
+}
+
+test "multiplying by a translation matrix" {
+    const transform = translation(5, -3, 2);
+    const p = point(-3, 4, 5);
+    try expectEqual(mul(transform, p), point(2, 1, 7));
+}
+
+test "multiplying by the inverse of a translation matrix" {
+    const transform = translation(5, -3, 2);
+    const inv = inverse(transform);
+    const p = point(-3, 4, 5);
+    try expectEqual(mul(inv, p), point(-8, 7, 3));
+}
+
+test "translation does not affect vectors" {
+    const transform = translation(5, -3, 2);
+    const v = vector(-3, 4, 5);
+    try expectEqual(mul(transform, v), v);
+}
+
+test "a scaling matrix applied to a point" {
+    const transform = scaling(2, 3, 4);
+    const p = point(-4, 6, 8);
+    try expectEqual(mul(transform, p), point(-8, 18, 32));
+}
+
+test "a scaling matrix applied to a vector" {
+    const transform = scaling(2, 3, 4);
+    const v = vector(-4, 6, 8);
+    try expectEqual(mul(transform, v), vector(-8, 18, 32));
+}
+
+test "multiplying by the inverse of a scaling matrix" {
+    const transform = scaling(2, 3, 4);
+    const inv = inverse(transform);
+    const v = vector(-4, 6, 8);
+    try expectEqual(mul(inv, v), vector(-2, 2, 2));
+}
+
+test "reflection is scaling by a negative value" {
+    const transform = scaling(-1, 1, 1);
+    const p = point(2, 3, 4);
+    try expectEqual(mul(transform, p), point(-2, 3, 4));
+}
+
+test "rotating a point around the x axis" {
+    const p = point(0, 1, 0);
+    const half_quarter = rotationX(std.math.pi / 4.0);
+    const full_quarter = rotationX(std.math.pi / 2.0);
+    try expect(tup.equal(mul(half_quarter, p), point(0, @sqrt(2.0) / 2.0, @sqrt(2.0) / 2.0), 0.0001));
+    try expect(tup.equal(mul(full_quarter, p), point(0, 0, 1), 0.00001));
+}
+
+test "the inverse of an x-rotation rotates in the opposite direction" {
+    const p = point(0, 1, 0);
+    const half_quarter = rotationX(std.math.pi / 4.0);
+    const inv = inverse(half_quarter);
+    try expect(tup.equal(mul(inv, p), point(0, @sqrt(2.0) / 2.0, -@sqrt(2.0) / 2.0), 0.00001));
+}
+
+test "rotating a point around the y axis" {
+    const p = point(0, 0, 1);
+    const half_quarter = rotationY(std.math.pi / 4.0);
+    const full_quarter = rotationY(std.math.pi / 2.0);
+    try expect(tup.equal(mul(half_quarter, p), point(@sqrt(2.0) / 2.0, 0, @sqrt(2.0) / 2.0), 0.00001));
+    try expect(tup.equal(mul(full_quarter, p), point(1, 0, 0), 0.00001));
+}
+
+test "rotating a point around the z axis" {
+    const p = point(0, 1, 0);
+    const half_quarter = rotationZ(std.math.pi / 4.0);
+    const full_quarter = rotationZ(std.math.pi / 2.0);
+    try expect(tup.equal(mul(half_quarter, p), point(-@sqrt(2.0) / 2.0, @sqrt(2.0) / 2.0, 0), 0.00001));
+    try expect(tup.equal(mul(full_quarter, p), point(-1, 0, 0), 0.00001));
+}
+
+test "a shearing transformation moves x in proportion to y" {
+    const transform = shearing(1, 0, 0, 0, 0, 0);
+    const p = point(2, 3, 4);
+    try expectEqual(mul(transform, p), point(5, 3, 4));
+}
+
+test "a shearing transformation moves x in proportion to z" {
+    const transform = shearing(0, 1, 0, 0, 0, 0);
+    const p = point(2, 3, 4);
+    try expectEqual(mul(transform, p), point(6, 3, 4));
+}
+
+test "a shearing transformation moves y in proportion to x" {
+    const transform = shearing(0, 0, 1, 0, 0, 0);
+    const p = point(2, 3, 4);
+    try expectEqual(mul(transform, p), point(2, 5, 4));
+}
+
+test "a shearing transformation moves y in proportion to z" {
+    const transform = shearing(0, 0, 0, 1, 0, 0);
+    const p = point(2, 3, 4);
+    try expectEqual(mul(transform, p), point(2, 7, 4));
+}
+
+test "a shearing transformation moves z in proportion to x" {
+    const transform = shearing(0, 0, 0, 0, 1, 0);
+    const p = point(2, 3, 4);
+    try expectEqual(mul(transform, p), point(2, 3, 6));
+}
+
+test "a shearing transformation moves z in proportion to y" {
+    const transform = shearing(0, 0, 0, 0, 0, 1);
+    const p = point(2, 3, 4);
+    try expectEqual(mul(transform, p), point(2, 3, 7));
+}
+
+test "individual transformations are applied in sequence" {
+    const p = point(1, 0, 1);
+    const a = rotationX(std.math.pi / 2.0);
+    const b = scaling(5, 5, 5);
+    const c = translation(10, 5, 7);
+
+    const p2 = mul(a, p);
+    try expect(tup.equal(p2, point(1, -1, 0), 0.00001));
+
+    const p3 = mul(b, p2);
+    try expect(tup.equal(p3, point(5, -5, 0), 0.00001));
+
+    const p4 = mul(c, p3);
+    try expect(tup.equal(p4, point(15, 0, 7), 0.00001));
+}
+
+test "chained transformations must be applied in reverse order" {
+    const p = point(1, 0, 1);
+    const a = rotationX(std.math.pi / 2.0);
+    const b = scaling(5, 5, 5);
+    const c = translation(10, 5, 7);
+    const t = mul(c, mul(b, a));
+    try expect(tup.equal(mul(t, p), point(15, 0, 7), 0.00001));
 }
