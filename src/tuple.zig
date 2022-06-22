@@ -27,6 +27,10 @@ pub fn isVector(t: Tuple) bool {
     return t[3] == 0;
 }
 
+pub fn equal(a: Tuple, b: Tuple, epsilon: f32) bool {
+    return @reduce(.And, @fabs(a - b) <= @splat(4, epsilon));
+}
+
 pub fn dot(u: Vector, v: Vector) f32 {
     return u[0] * v[0] + u[1] * v[1] + u[2] * v[2] + u[3] * v[3];
 }
