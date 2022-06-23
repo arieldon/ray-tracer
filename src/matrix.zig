@@ -13,7 +13,7 @@ pub const Matrix4x4 = [4]@Vector(4, f32);
 pub const Matrix3x3 = [3]@Vector(3, f32);
 pub const Matrix2x2 = [2]@Vector(2, f32);
 
-const identity = Matrix{
+pub const identity = Matrix{
     .{ 1, 0, 0, 0 },
     .{ 0, 1, 0, 0 },
     .{ 0, 0, 1, 0 },
