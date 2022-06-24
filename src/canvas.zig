@@ -42,13 +42,13 @@ pub const Canvas = struct {
         return self.pixels[self.index(x, y)];
     }
 
-    pub fn toPPM(self: *Canvas, ppm_string: *std.ArrayList(u8)) !void {
-        try std.fmt.format(ppm_string.writer(), "P3\n{d} {d}\n255\n", .{ self.width, self.height });
+    pub fn toPPM(self: *Canvas, writer: anytype) !void {
+        try std.fmt.format(writer, "P3\n{d} {d}\n255\n", .{ self.width, self.height });
         for (self.pixels) |pixel| {
             const red = @round(std.math.clamp(pixel[0] * 255, 0, 255));
             const green = @round(std.math.clamp(pixel[1] * 255, 0, 255));
             const blue = @round(std.math.clamp(pixel[2] * 255, 0, 255));
-            try std.fmt.format(ppm_string.writer(), "{d} {d} {d}\n", .{ red, green, blue });
+            try std.fmt.format(writer, "{d} {d} {d}\n", .{ red, green, blue });
         }
     }
 
@@ -87,7 +87,7 @@ test "constructing the PPM header" {
     var ppm = std.ArrayList(u8).init(std.testing.allocator);
     defer ppm.deinit();
 
-    try c.toPPM(&ppm);
+    try c.toPPM(ppm.writer());
     try expectEqualStrings("P3\n0 0\n255\n", ppm.items);
 }
 
@@ -106,7 +106,7 @@ test "constructing the PPM pixel data" {
     var ppm = std.ArrayList(u8).init(std.testing.allocator);
     defer ppm.deinit();
 
-    try c.toPPM(&ppm);
+    try c.toPPM(ppm.writer());
     try expectEqualStrings(
         \\255 0 0
         \\0 0 0
