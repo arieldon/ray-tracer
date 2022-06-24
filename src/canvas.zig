@@ -16,18 +16,18 @@ pub const Canvas = struct {
     pixels: []Color,
 
     pub fn init(allocator: std.mem.Allocator, width: u32, height: u32) !Canvas {
-        var canvas = Canvas{
+        var c = Canvas{
             .allocator = allocator,
             .width = width,
             .height = height,
             .pixels = try allocator.alloc(Color, width * height),
         };
 
-        for (canvas.pixels) |*pixel| {
+        for (c.pixels) |*pixel| {
             pixel.* = .{ 0, 0, 0 };
         }
 
-        return canvas;
+        return c;
     }
 
     pub fn deinit(self: *Canvas) void {
@@ -56,6 +56,10 @@ pub const Canvas = struct {
         return y * self.width + x;
     }
 };
+
+pub inline fn canvas(allocator: std.mem.Allocator, width: u32, height: u32) !Canvas {
+    return Canvas.init(allocator, width, height);
+}
 
 test "creating a canvas" {
     var c = try Canvas.init(std.testing.allocator, 10, 20);
