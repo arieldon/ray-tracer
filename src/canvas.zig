@@ -9,6 +9,10 @@ pub fn color(r: f32, g: f32, b: f32) Color {
     return .{ r, g, b };
 }
 
+pub fn equal(a: Color, b: Color) bool {
+    return @reduce(.And, @fabs(a - b) <= @splat(3, @as(f32, 0.0001)));
+}
+
 pub const Canvas = struct {
     allocator: std.mem.Allocator,
     width: u32,
