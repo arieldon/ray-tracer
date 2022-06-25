@@ -51,6 +51,10 @@ pub fn normalize(v: Vector) Vector {
     return v / @splat(4, @as(f32, magnitude(v)));
 }
 
+pub fn reflect(in: Vector, normal: Vector) Vector {
+    return in - normal * @splat(4, dot(in, normal)) * @splat(4, @as(f32, 2.0));
+}
+
 test "a tuple with w=1.0 is a point" {
     const a = tuple(4.3, -4.2, 3.1, 1.0);
 
@@ -194,4 +198,19 @@ test "the cross product of two vectors" {
 
     try expectEqual(cross(a, b), vector(-1, 2, -1));
     try expectEqual(cross(b, a), vector(1, -2, 1));
+}
+
+test "reflecting a vector approaching at 45 degrees" {
+    const v = vector(1, -1, 0);
+    const n = vector(0, 1, 0);
+    const r = reflect(v, n);
+    try expectEqual(r, vector(1, 1, 0));
+}
+
+test "reflecting a vector off a slanted surface" {
+    const v = vector(0, -1, 0);
+    const a = @sqrt(2.0) / 2.0;
+    const n = vector(a, a, 0);
+    const r = reflect(v, n);
+    try expect(equal(r, vector(1, 0, 0), 0.00001));
 }
