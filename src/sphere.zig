@@ -1,4 +1,5 @@
 const std = @import("std");
+const expect = std.testing.expect;
 const expectEqual = std.testing.expectEqual;
 const expectApproxEqAbs = std.testing.expectApproxEqAbs;
 const int = @import("intersection.zig");
@@ -47,6 +48,15 @@ pub fn intersect(ts: *std.ArrayList(int.Intersection), s: Sphere, r: ray.Ray) !v
         var t2 = int.intersection((-b + @sqrt(discriminant)) / (2 * a), s);
         try ts.appendSlice(&[_]int.Intersection{ t1, t2 });
     }
+}
+
+pub fn normal_at(s: Sphere, world_point: tup.Point) tup.Vector {
+    const inverse = mat.inverse(s.transform);
+    const object_point = mat.mul(inverse, world_point);
+    const object_normal = object_point - tup.point(0, 0, 0);
+    var world_normal = mat.mul(mat.transpose(inverse), object_normal);
+    world_normal[3] = 0;
+    return tup.normalize(world_normal);
 }
 
 test "a ray intersects a sphere at two points" {
@@ -155,4 +165,51 @@ test "intersecting a translated sphere with a ray" {
 
     try intersect(&xs, s, r);
     try expectEqual(xs.items.len, 0);
+}
+
+test "the normal on a sphere at a point on the x axis" {
+    const s = sphere();
+    const n = normal_at(s, tup.point(1, 0, 0));
+    try expectEqual(n, tup.vector(1, 0, 0));
+}
+
+test "the normal on a sphere at a point on the y axis" {
+    const s = sphere();
+    const n = normal_at(s, tup.point(0, 1, 0));
+    try expectEqual(n, tup.vector(0, 1, 0));
+}
+
+test "the normal on a sphere at a point on the z axis" {
+    const s = sphere();
+    const n = normal_at(s, tup.point(0, 0, 1));
+    try expectEqual(n, tup.vector(0, 0, 1));
+}
+
+test "the normal on a sphere at a nonaxial point" {
+    const s = sphere();
+    const a = @sqrt(3.0) / 3.0;
+    const n = normal_at(s, tup.point(a, a, a));
+    try expect(tup.equal(n, tup.vector(a, a, a), 0.00001));
+}
+
+test "the normal is a normalized vector" {
+    const s = sphere();
+    const a = @sqrt(3.0) / 3.0;
+    const n = normal_at(s, tup.point(a, a, a));
+    try expect(tup.equal(n, tup.normalize(n), 0.00001));
+}
+
+test "computing the normal on a translated sphere" {
+    var s = sphere();
+    s.transform = mat.translation(0, 1, 0);
+    const n = normal_at(s, tup.point(0, 1.70711, -0.70711));
+    try expect(tup.equal(n, tup.vector(0, 0.70711, -0.70711), 0.00001));
+}
+
+test "computing the normal on a transformed sphere" {
+    var s = sphere();
+    s.transform = mat.mul(mat.scaling(1, 0.5, 1), mat.rotationZ(std.math.pi / 5.0));
+    const a = @sqrt(2.0) / 2.0;
+    const n = normal_at(s, tup.point(0, a, -a));
+    try expect(tup.equal(n, tup.vector(0, 0.97014, -0.24254), 0.00001));
 }
