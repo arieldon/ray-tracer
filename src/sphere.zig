@@ -6,9 +6,11 @@ const int = @import("intersection.zig");
 const mat = @import("matrix.zig");
 const ray = @import("ray.zig");
 const tup = @import("tuple.zig");
+const mtl = @import("material.zig");
 
 pub const Sphere = struct {
     id: u8,
+    material: mtl.Material = mtl.material(),
     transform: mat.Matrix = mat.identity,
 };
 
@@ -212,4 +214,18 @@ test "computing the normal on a transformed sphere" {
     const a = @sqrt(2.0) / 2.0;
     const n = normal_at(s, tup.point(0, a, -a));
     try expect(tup.equal(n, tup.vector(0, 0.97014, -0.24254), 0.00001));
+}
+
+test "a sphere has a default material" {
+    const s = sphere();
+    const m = mtl.material();
+    try expectEqual(m, s.material);
+}
+
+test "a sphere may be assigned a material" {
+    var s = sphere();
+    var m = mtl.material();
+    m.ambient = 1;
+    s.material = m;
+    try expectEqual(m, s.material);
 }
