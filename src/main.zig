@@ -2,6 +2,7 @@ const std = @import("std");
 
 pub const cnv = @import("canvas.zig");
 pub const int = @import("intersection.zig");
+pub const lht = @import("light.zig");
 pub const mat = @import("matrix.zig");
 pub const ray = @import("ray.zig");
 pub const sph = @import("sphere.zig");
