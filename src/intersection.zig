@@ -37,6 +37,37 @@ pub fn hit(xs: *std.ArrayList(Intersection)) ?Intersection {
     return null;
 }
 
+pub const Computation = struct {
+    t: f32,
+    object: sph.Sphere,
+    point: tup.Point,
+    eye: tup.Vector,
+    normal: tup.Vector,
+    inside: bool,
+};
+
+pub fn prepareComputations(i: Intersection, r: ray.Ray) Computation {
+    var comps: Computation = undefined;
+
+    // Copy properties of intersection.
+    comps.t = i.t;
+    comps.object = i.object;
+
+    // Precompute useful values.
+    comps.point = ray.position(r, i.t);
+    comps.eye = -r.direction;
+    comps.normal = sph.normal_at(i.object, comps.point);
+
+    if (tup.dot(comps.normal, comps.eye) < 0) {
+        comps.inside = true;
+        comps.normal = -comps.normal;
+    } else {
+        comps.inside = false;
+    }
+
+    return comps;
+}
+
 test "an intersection encapsulates t and object" {
     const s = sph.sphere();
     const i = intersection(3.5, s);
@@ -105,4 +136,35 @@ test "the hit is always the lowest nonnegative intersection" {
     try intersections(&xs, &[_]Intersection{ int1, int2, int3, int4 });
     const int = hit(&xs);
     try expectEqual(int, int4);
+}
+
+test "precomputing the state of an intersection" {
+    const r = ray.ray(tup.point(0, 0, -5), tup.vector(0, 0, 1));
+    const shape = sph.sphere();
+    const i = intersection(4, shape);
+    const comps = prepareComputations(i, r);
+    try expectEqual(comps.t, i.t);
+    try expectEqual(comps.object, i.object);
+    try expectEqual(comps.point, tup.point(0, 0, -1));
+    try expectEqual(comps.eye, tup.vector(0, 0, -1));
+    try expectEqual(comps.normal, tup.vector(0, 0, -1));
+}
+
+test "the hit, when an intersection occurs on the outside" {
+    const r = ray.ray(tup.point(0, 0, -5), tup.vector(0, 0, 1));
+    const shape = sph.sphere();
+    const i = intersection(4, shape);
+    const comps = prepareComputations(i, r);
+    try expectEqual(comps.inside, false);
+}
+
+test "the hit, when an intersection occurs on the inside" {
+    const r = ray.ray(tup.point(0, 0, 0), tup.vector(0, 0, 1));
+    const shape = sph.sphere();
+    const i = intersection(1, shape);
+    const comps = prepareComputations(i, r);
+    try expectEqual(comps.point, tup.point(0, 0, 1));
+    try expectEqual(comps.eye, tup.vector(0, 0, -1));
+    try expectEqual(comps.inside, true);
+    try expectEqual(comps.normal, tup.vector(0, 0, -1));
 }

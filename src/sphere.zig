@@ -97,6 +97,12 @@ pub fn normal_at(s: Sphere, world_point: tup.Point) tup.Vector {
     return tup.normalize(world_normal);
 }
 
+pub fn equal(s: Sphere, t: Sphere) bool {
+    // NOTE: This function intentionally avoids comparing sphere IDs. It only
+    // compares their materials and transform matrices.
+    return std.meta.eql(s.material, t.material) and mat.equal(s.transform, t.transform, 0.00001);
+}
+
 test "a ray intersects a sphere at two points" {
     const r = ray.ray(tup.point(0, 0, -5), tup.vector(0, 0, 1));
     const s = sphere();
