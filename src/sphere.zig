@@ -35,17 +35,34 @@ pub fn intersect(ts: *std.ArrayList(int.Intersection), s: Sphere, r: ray.Ray) !v
     // the scene.
     const r_prime = ray.transform(r, mat.inverse(s.transform));
 
-    // Calculate the vector from the center of the sphere at the origin of the
-    // world to the origin of the ray.
+    // Calculate the vector from the center of the sphere to the origin of the
+    // ray, where the sphere is a unit sphere and thus centered about the
+    // origin with a radius of one.
     const sphere_to_ray = r_prime.origin - tup.point(0, 0, 0);
 
-    // TODO Document the rationale behind this formula.
+    // Calculate the variables in the discriminant (b^2 - 4ac) from the
+    // quadratic formula algebraically. In this case, the equation in quadratic
+    // form derives from the equation of a sphere centered about the origin:
+    // P^2 - R^2 = 0, where P is some point (x, y, z) on the coordinate plane
+    // and R is the radius of the unit sphere. Replace P with the equation for
+    // a point along a ray: P(t) = O + tD, where O and D represent the origin
+    // and direction of the ray, respectively. Expand the expression and
+    // rearrange the variables to match the following table.
+    //      a <- D^2
+    //      b <- 2 * D . O
+    //      c <- O^2 - R^2
     const a = tup.dot(r_prime.direction, r_prime.direction);
     const b = 2 * tup.dot(r_prime.direction, sphere_to_ray);
     const c = tup.dot(sphere_to_ray, sphere_to_ray) - 1;
 
+    // Use the discriminant to determine the number of intersections and their
+    // t values if they exist.
     const discriminant = b * b - 4 * a * c;
     if (discriminant >= 0) {
+        // When the ray intersects a sphere at two unique points, both t values
+        // will be unique. When the ray is tangent to the sphere and it
+        // intersects at one point, both t values will be the same. In this
+        // latter case, the discriminant is zero.
         var t1 = int.intersection((-b - @sqrt(discriminant)) / (2 * a), s);
         var t2 = int.intersection((-b + @sqrt(discriminant)) / (2 * a), s);
         try ts.appendSlice(&[_]int.Intersection{ t1, t2 });
