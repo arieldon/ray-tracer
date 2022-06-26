@@ -71,10 +71,29 @@ pub fn intersect(ts: *std.ArrayList(int.Intersection), s: Sphere, r: ray.Ray) !v
 
 pub fn normal_at(s: Sphere, world_point: tup.Point) tup.Vector {
     const inverse = mat.inverse(s.transform);
+
+    // Convert the point from world space to object space. Because the sphere
+    // may be transformed -- skewed, translated, scaled, or what not -- in
+    // world space, it's necessary to calculate the surface normal vector
+    // relative to the sphere rather than the world.
     const object_point = mat.mul(inverse, world_point);
+
+    // With the point in object space, it's easy to calculate the surface
+    // normal vector: the center of the sphere from the point in question. With
+    // the base assumption that all spheres are unit spheres in this ray
+    // tracer, the center of the sphere is the origin of the coordinate plane.
     const object_normal = object_point - tup.point(0, 0, 0);
+
+    // Convert the surface normal vector from object space to world space.
+    // Multiply by the transpose of the inverse to keep the surface normal
+    // vector perpendicular to the surface of the sphere.
     var world_normal = mat.mul(mat.transpose(inverse), object_normal);
+
+    // HACK: Reset w to 0 to accommodate translation transformations. It's more
+    // proper to multiply by the inverse transpose of the submatrix in the
+    // previous calculation, but this achieves the same result, faster.
     world_normal[3] = 0;
+
     return tup.normalize(world_normal);
 }
 

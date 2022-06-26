@@ -52,6 +52,7 @@ pub fn normalize(v: Vector) Vector {
 }
 
 pub fn reflect(in: Vector, normal: Vector) Vector {
+    // Reflect the incoming vector across the surface normal vector provided.
     return in - normal * @splat(4, dot(in, normal)) * @splat(4, @as(f32, 2.0));
 }
 

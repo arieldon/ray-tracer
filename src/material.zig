@@ -7,10 +7,10 @@ const tup = @import("tuple.zig");
 
 pub const Material = struct {
     color: cnv.Color,
-    ambient: f32,
-    diffuse: f32,
-    specular: f32,
-    shininess: f32,
+    ambient: f32,   // Ambient reflection is background lighting.
+    diffuse: f32,   // Diffuse reflection is light reflected from a matte surface.
+    specular: f32,  // Specular reflection is the reflection of the light source itself.
+    shininess: f32, // Parameter for size of specular highlight: the bright spot on curved surface.
 };
 
 pub fn material() Material {
@@ -23,35 +23,48 @@ pub fn material() Material {
     };
 }
 
+// Use the Phong reflection model.
 pub fn lighting(
-        mtl: Material, light: lht.PointLight,
-        point: tup.Point, eyev: tup.Vector, normalv: tup.Vector
+        mtl: Material,
+        light: lht.PointLight,
+        point: tup.Point,
+        eye: tup.Vector,
+        normal: tup.Vector,
 ) cnv.Color {
-    // Combine the surface color with intensity and color of light.
     const effective_color = mtl.color * light.intensity;
+    const light_direction = tup.normalize(light.position - point);
 
-    // Calculate direction to light source.
-    const lightv = tup.normalize(light.position - point);
-
-    // Compute the ambient contribution.
+    // Compute the ambient contribution. In the Phong model, ambient
+    // contribution is constant across the entire surface of the object.
     const ambient = effective_color * @splat(3, mtl.ambient);
 
+    // Diffuse reflection depends on the angle between the light source and the
+    // surface normal.
     var diffuse: cnv.Color = undefined;
+
+    // Specular reflection depends on the angle between the reflection vector,
+    // the eye vector, and the shininess parameter.
     var specular: cnv.Color = undefined;
 
-    const light_dot_normal = tup.dot(lightv, normalv);
-    if (light_dot_normal < 0) {
+    const cos_light_normal = tup.dot(light_direction, normal);
+    if (cos_light_normal < 0) {
+        // A negative value for the cosine of the angle between the light
+        // vector and the surface normal vector implies the light is on the
+        // other side of the surface.
         diffuse = cnv.color(0, 0, 0);
         specular = cnv.color(0, 0, 0);
     } else {
-        diffuse = effective_color * @splat(3, mtl.diffuse) * @splat(3, light_dot_normal);
+        diffuse = effective_color * @splat(3, mtl.diffuse) * @splat(3, cos_light_normal);
 
-        const reflectv = tup.reflect(-lightv, normalv);
-        const reflect_dot_eye = tup.dot(reflectv, eyev);
-        if (reflect_dot_eye <= 0) {
+        const reflect = tup.reflect(-light_direction, normal);
+        const cos_reflect_eye = tup.dot(reflect, eye);
+        if (cos_reflect_eye <= 0) {
+            // A negative value for the cosine of the angle between the
+            // reflected vector and the eye vector implies the light reflects
+            // away from the eye.
             specular = cnv.color(0, 0, 0);
         } else {
-            const factor = std.math.pow(f32, reflect_dot_eye, mtl.shininess);
+            const factor = std.math.pow(f32, cos_reflect_eye, mtl.shininess);
             specular = light.intensity * @splat(3, mtl.specular) * @splat(3, factor);
         }
     }
