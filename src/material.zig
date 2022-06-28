@@ -86,7 +86,7 @@ test "lighting with the eye between the light and the surface" {
     const position = tup.point(0, 0, 0);
     const eyev = tup.vector(0, 0, -1);
     const normalv = tup.vector(0, 0, -1);
-    const light = lht.point_light(tup.point(0, 0, -10), cnv.color(1, 1, 1));
+    const light = lht.pointLight(tup.point(0, 0, -10), cnv.color(1, 1, 1));
     const result = lighting(m, light, position, eyev, normalv);
     try expectEqual(result, cnv.color(1.9, 1.9, 1.9));
 }
@@ -97,7 +97,7 @@ test "lighting with the eye between light and surface, eye offset 45 degrees" {
     const a = @sqrt(2.0) / 2.0;
     const eyev = tup.vector(0, a, -a);
     const normalv = tup.vector(0, 0, -1);
-    const light = lht.point_light(tup.point(0, 0, -10), cnv.color(1, 1, 1));
+    const light = lht.pointLight(tup.point(0, 0, -10), cnv.color(1, 1, 1));
     const result = lighting(m, light, position, eyev, normalv);
     try expectEqual(result, cnv.color(1.0, 1.0, 1.0));
 }
@@ -107,7 +107,7 @@ test "lighting with eye opposite surface, light offset 45 degrees" {
     const position = tup.point(0, 0, 0);
     const eyev = tup.vector(0, 0, -1);
     const normalv = tup.vector(0, 0, -1);
-    const light = lht.point_light(tup.point(0, 10, -10), cnv.color(1, 1, 1));
+    const light = lht.pointLight(tup.point(0, 10, -10), cnv.color(1, 1, 1));
     const result = lighting(m, light, position, eyev, normalv);
     try expect(cnv.equal(result, cnv.color(0.7364, 0.7364, 0.7364)));
 }
@@ -118,7 +118,7 @@ test "lighting with eye in the path of the reflection vector" {
     const a = @sqrt(2.0) / 2.0;
     const eyev = tup.vector(0, -a, -a);
     const normalv = tup.vector(0, 0, -1);
-    const light = lht.point_light(tup.point(0, 10, -10), cnv.color(1, 1, 1));
+    const light = lht.pointLight(tup.point(0, 10, -10), cnv.color(1, 1, 1));
     const result = lighting(m, light, position, eyev, normalv);
     try expect(cnv.equal(result, cnv.color(1.6364, 1.6364, 1.6364)));
 }
@@ -128,7 +128,7 @@ test "lighting with the light behind the surface" {
     const position = tup.point(0, 0, 0);
     const eyev = tup.vector(0, 0, -1);
     const normalv = tup.vector(0, 0, -1);
-    const light = lht.point_light(tup.point(0, 0, 10), cnv.color(1, 1, 1));
+    const light = lht.pointLight(tup.point(0, 0, 10), cnv.color(1, 1, 1));
     const result = lighting(m, light, position, eyev, normalv);
     try expectEqual(result, cnv.color(0.1, 0.1, 0.1));
 }

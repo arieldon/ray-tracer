@@ -27,7 +27,7 @@ pub const World = struct {
         var w = World.init(allocator);
 
         // Add default light source.
-        w.light = lht.point_light(tup.point(-10, 10, -10), cnv.color(1, 1, 1));
+        w.light = lht.pointLight(tup.point(-10, 10, -10), cnv.color(1, 1, 1));
 
         var s1 = sph.sphere();
         s1.material.color = cnv.color(0.8, 1.0, 0.6);
@@ -95,7 +95,7 @@ test "creating a world" {
 }
 
 test "the default world" {
-    const light = lht.point_light(tup.point(-10, 10, -10), cnv.color(1, 1, 1));
+    const light = lht.pointLight(tup.point(-10, 10, -10), cnv.color(1, 1, 1));
 
     var s1 = sph.sphere();
     s1.id = 0;
@@ -148,7 +148,7 @@ test "shading an intersection" {
 
 test "shading an intersection from the inside" {
     var w = try defaultWorld(std.testing.allocator);
-    w.light = lht.point_light(tup.point(0, 0.25, 0), cnv.color(1, 1, 1));
+    w.light = lht.pointLight(tup.point(0, 0.25, 0), cnv.color(1, 1, 1));
     defer w.deinit();
 
     const r = ray.ray(tup.point(0, 0, 0), tup.vector(0, 0, 1));
