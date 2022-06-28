@@ -14,6 +14,7 @@ pub fn build(b: *std.build.Builder) void {
     inline for (.{
         .{ .bin_name = "red-sphere", .source_path = "samples/red_sphere.zig" },
         .{ .bin_name = "shaded-sphere", .source_path = "samples/shaded_sphere.zig" },
+        .{ .bin_name = "sphere-world", .source_path = "samples/sphere_world.zig" },
     }) |sample| {
         // Construct the sample.
         const exe = b.addExecutable(sample.bin_name, sample.source_path);
