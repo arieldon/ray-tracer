@@ -198,12 +198,7 @@ pub fn rotationX(r: f32) Matrix {
 
 pub fn rotationY(r: f32) Matrix {
     return .{
-        .{
-            @cos(r),
-            0,
-            @sin(r),
-            0,
-        },
+        .{ @cos(r), 0, @sin(r), 0 },
         .{ 0, 1, 0, 0 },
         .{ -@sin(r), 0, @cos(r), 0 },
         .{ 0, 0, 0, 1 },
