@@ -99,15 +99,15 @@ test "the pixel size for a vertical canvas" {
 test "constructing a ray through the center of the canvas" {
     const c = camera(201, 101, std.math.pi / 2.0);
     const r = rayForPixel(c, 100, 50);
-    try expect(tup.equal(r.origin, tup.point(0, 0, 0), 0.00001));
-    try expect(tup.equal(r.direction, tup.vector(0, 0, -1), 0.00001));
+    try expect(tup.equal(r.origin, tup.point(0, 0, 0)));
+    try expect(tup.equal(r.direction, tup.vector(0, 0, -1)));
 }
 
 test "constructing a ray through a corner of the canvas" {
     const c = camera(201, 101, std.math.pi / 2.0);
     const r = rayForPixel(c, 0, 0);
-    try expect(tup.equal(r.origin, tup.point(0, 0, 0), 0.00001));
-    try expect(tup.equal(r.direction, tup.vector(0.66519, 0.33259, -0.66851), 0.00001));
+    try expect(tup.equal(r.origin, tup.point(0, 0, 0)));
+    try expect(tup.equal(r.direction, tup.vector(0.66519, 0.33259, -0.66851)));
 }
 
 test "constructing a ray when the camera is transformed" {
@@ -115,8 +115,8 @@ test "constructing a ray when the camera is transformed" {
     c.transform = mat.mul(mat.rotationY(std.math.pi / 4.0), mat.translation(0, -2, 5));
     const r = rayForPixel(c, 100, 50);
     const a = @sqrt(2.0) / 2.0;
-    try expect(tup.equal(r.origin, tup.point(0, 2, -5), 0.00001));
-    try expect(tup.equal(r.direction, tup.vector(a, 0, -a), 0.00001));
+    try expect(tup.equal(r.origin, tup.point(0, 2, -5)));
+    try expect(tup.equal(r.direction, tup.vector(a, 0, -a)));
 }
 
 test "rendering a world with a camera" {

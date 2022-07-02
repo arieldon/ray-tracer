@@ -20,12 +20,10 @@ pub const identity = Matrix{
     .{ 0, 0, 0, 1 },
 };
 
-pub fn equal(a: Matrix, b: Matrix, epsilon: f32) bool {
-    var row: u8 = 0;
-    while (row < 4) : (row += 1) {
-        if (@reduce(.And, @fabs(a[row] - b[row]) > @splat(4, epsilon))) {
-            return false;
-        }
+pub fn equal(a: Matrix, b: Matrix) bool {
+    comptime var row: u8 = 0;
+    inline while (row < 4) : (row += 1) {
+        if (!tup.equal(a[row], b[row])) return false;
     }
     return true;
 }
@@ -252,7 +250,7 @@ test "matrix equality with identical matrices" {
         .{ 9, 8, 7, 6 },
         .{ 5, 4, 3, 2 },
     };
-    try expect(equal(a, b, 0.00001));
+    try expect(equal(a, b));
 }
 
 test "matrix equality with different matrices" {
@@ -268,7 +266,7 @@ test "matrix equality with different matrices" {
         .{ 8, 7, 6, 5 },
         .{ 4, 3, 2, 1 },
     };
-    try expect(!equal(a, b, 0.00001));
+    try expect(!equal(a, b));
 }
 
 test "multiplying two matrices" {
@@ -462,7 +460,7 @@ test "calculating the inverse of a matrix" {
     try expectEqual(b[3][2], -160.0 / 532.0);
     try expectEqual(cofactor(a, 3, 2), 105);
     try expectEqual(b[2][3], 105.0 / 532.0);
-    try expect(equal(b, c, 0.00001));
+    try expect(equal(b, c));
 }
 
 test "calculating the inverse of another matrix" {
@@ -478,7 +476,7 @@ test "calculating the inverse of another matrix" {
         .{ 0.35897, 0.35897, 0.43590, 0.92308 },
         .{ -0.69231, -0.69231, -0.76923, -1.92308 },
     };
-    try expect(equal(inverse(a), b, 0.00001));
+    try expect(equal(inverse(a), b));
 }
 
 test "calculating the inverse of a third matrix" {
@@ -494,7 +492,7 @@ test "calculating the inverse of a third matrix" {
         .{ -0.02901, -0.14630, -0.10926, 0.12963 },
         .{ 0.17778, 0.06667, -0.26667, 0.33333 },
     };
-    try expect(equal(inverse(a), b, 0.00001));
+    try expect(equal(inverse(a), b));
 }
 
 test "multiplying a product by its inverse" {
@@ -511,7 +509,7 @@ test "multiplying a product by its inverse" {
         .{ 6, -2, 0, 5 },
     };
     const c = mul(a, b);
-    try expect(equal(mul(c, inverse(b)), a, 0.00001));
+    try expect(equal(mul(c, inverse(b)), a));
 }
 
 test "multiplying by a translation matrix" {
@@ -562,31 +560,31 @@ test "rotating a point around the x axis" {
     const p = point(0, 1, 0);
     const half_quarter = rotationX(std.math.pi / 4.0);
     const full_quarter = rotationX(std.math.pi / 2.0);
-    try expect(tup.equal(mul(half_quarter, p), point(0, @sqrt(2.0) / 2.0, @sqrt(2.0) / 2.0), 0.0001));
-    try expect(tup.equal(mul(full_quarter, p), point(0, 0, 1), 0.00001));
+    try expect(tup.equal(mul(half_quarter, p), point(0, @sqrt(2.0) / 2.0, @sqrt(2.0) / 2.0)));
+    try expect(tup.equal(mul(full_quarter, p), point(0, 0, 1)));
 }
 
 test "the inverse of an x-rotation rotates in the opposite direction" {
     const p = point(0, 1, 0);
     const half_quarter = rotationX(std.math.pi / 4.0);
     const inv = inverse(half_quarter);
-    try expect(tup.equal(mul(inv, p), point(0, @sqrt(2.0) / 2.0, -@sqrt(2.0) / 2.0), 0.00001));
+    try expect(tup.equal(mul(inv, p), point(0, @sqrt(2.0) / 2.0, -@sqrt(2.0) / 2.0)));
 }
 
 test "rotating a point around the y axis" {
     const p = point(0, 0, 1);
     const half_quarter = rotationY(std.math.pi / 4.0);
     const full_quarter = rotationY(std.math.pi / 2.0);
-    try expect(tup.equal(mul(half_quarter, p), point(@sqrt(2.0) / 2.0, 0, @sqrt(2.0) / 2.0), 0.00001));
-    try expect(tup.equal(mul(full_quarter, p), point(1, 0, 0), 0.00001));
+    try expect(tup.equal(mul(half_quarter, p), point(@sqrt(2.0) / 2.0, 0, @sqrt(2.0) / 2.0)));
+    try expect(tup.equal(mul(full_quarter, p), point(1, 0, 0)));
 }
 
 test "rotating a point around the z axis" {
     const p = point(0, 1, 0);
     const half_quarter = rotationZ(std.math.pi / 4.0);
     const full_quarter = rotationZ(std.math.pi / 2.0);
-    try expect(tup.equal(mul(half_quarter, p), point(-@sqrt(2.0) / 2.0, @sqrt(2.0) / 2.0, 0), 0.00001));
-    try expect(tup.equal(mul(full_quarter, p), point(-1, 0, 0), 0.00001));
+    try expect(tup.equal(mul(half_quarter, p), point(-@sqrt(2.0) / 2.0, @sqrt(2.0) / 2.0, 0)));
+    try expect(tup.equal(mul(full_quarter, p), point(-1, 0, 0)));
 }
 
 test "a shearing transformation moves x in proportion to y" {
@@ -632,13 +630,13 @@ test "individual transformations are applied in sequence" {
     const c = translation(10, 5, 7);
 
     const p2 = mul(a, p);
-    try expect(tup.equal(p2, point(1, -1, 0), 0.00001));
+    try expect(tup.equal(p2, point(1, -1, 0)));
 
     const p3 = mul(b, p2);
-    try expect(tup.equal(p3, point(5, -5, 0), 0.00001));
+    try expect(tup.equal(p3, point(5, -5, 0)));
 
     const p4 = mul(c, p3);
-    try expect(tup.equal(p4, point(15, 0, 7), 0.00001));
+    try expect(tup.equal(p4, point(15, 0, 7)));
 }
 
 test "chained transformations must be applied in reverse order" {
@@ -647,5 +645,5 @@ test "chained transformations must be applied in reverse order" {
     const b = scaling(5, 5, 5);
     const c = translation(10, 5, 7);
     const t = mul(c, mul(b, a));
-    try expect(tup.equal(mul(t, p), point(15, 0, 7), 0.00001));
+    try expect(tup.equal(mul(t, p), point(15, 0, 7)));
 }

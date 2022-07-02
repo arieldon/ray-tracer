@@ -100,7 +100,7 @@ pub fn normal_at(s: Sphere, world_point: tup.Point) tup.Vector {
 pub fn equal(s: Sphere, t: Sphere) bool {
     // NOTE: This function intentionally avoids comparing sphere IDs. It only
     // compares their materials and transform matrices.
-    return std.meta.eql(s.material, t.material) and mat.equal(s.transform, t.transform, 0.00001);
+    return std.meta.eql(s.material, t.material) and mat.equal(s.transform, t.transform);
 }
 
 test "a ray intersects a sphere at two points" {
@@ -233,21 +233,21 @@ test "the normal on a sphere at a nonaxial point" {
     const s = sphere();
     const a = @sqrt(3.0) / 3.0;
     const n = normal_at(s, tup.point(a, a, a));
-    try expect(tup.equal(n, tup.vector(a, a, a), 0.00001));
+    try expect(tup.equal(n, tup.vector(a, a, a)));
 }
 
 test "the normal is a normalized vector" {
     const s = sphere();
     const a = @sqrt(3.0) / 3.0;
     const n = normal_at(s, tup.point(a, a, a));
-    try expect(tup.equal(n, tup.normalize(n), 0.00001));
+    try expect(tup.equal(n, tup.normalize(n)));
 }
 
 test "computing the normal on a translated sphere" {
     var s = sphere();
     s.transform = mat.translation(0, 1, 0);
     const n = normal_at(s, tup.point(0, 1.70711, -0.70711));
-    try expect(tup.equal(n, tup.vector(0, 0.70711, -0.70711), 0.00001));
+    try expect(tup.equal(n, tup.vector(0, 0.70711, -0.70711)));
 }
 
 test "computing the normal on a transformed sphere" {
@@ -255,7 +255,7 @@ test "computing the normal on a transformed sphere" {
     s.transform = mat.mul(mat.scaling(1, 0.5, 1), mat.rotationZ(std.math.pi / 5.0));
     const a = @sqrt(2.0) / 2.0;
     const n = normal_at(s, tup.point(0, a, -a));
-    try expect(tup.equal(n, tup.vector(0, 0.97014, -0.24254), 0.00001));
+    try expect(tup.equal(n, tup.vector(0, 0.97014, -0.24254)));
 }
 
 test "a sphere has a default material" {

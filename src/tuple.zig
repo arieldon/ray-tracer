@@ -27,8 +27,11 @@ pub fn isVector(t: Tuple) bool {
     return t[3] == 0;
 }
 
-pub fn equal(a: Tuple, b: Tuple, epsilon: f32) bool {
-    return @reduce(.And, @fabs(a - b) <= @splat(4, epsilon));
+pub fn equal(a: Tuple, b: Tuple) bool {
+    // NOTE: This isn't a very precise equality test, especially as values
+    // approach zero, but it serves its purpose, at least for now.
+    const epsilon = @splat(4, @as(f32, 0.00001));
+    return @reduce(.And, @fabs(a - b) <= epsilon);
 }
 
 pub fn dot(u: Vector, v: Vector) f32 {
@@ -213,5 +216,5 @@ test "reflecting a vector off a slanted surface" {
     const a = @sqrt(2.0) / 2.0;
     const n = vector(a, a, 0);
     const r = reflect(v, n);
-    try expect(equal(r, vector(1, 0, 0), 0.00001));
+    try expect(equal(r, vector(1, 0, 0)));
 }

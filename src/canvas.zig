@@ -10,6 +10,8 @@ pub fn color(r: f32, g: f32, b: f32) Color {
 }
 
 pub fn equal(a: Color, b: Color) bool {
+    // NOTE: This isn't a very precise equality test, especially as values
+    // approach zero, but it serves its purpose, at least for now.
     return @reduce(.And, @fabs(a - b) <= @splat(3, @as(f32, 0.0001)));
 }
 

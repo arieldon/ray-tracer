@@ -44,5 +44,5 @@ test "an arbitrary view transformation" {
         .{-0.35857, 0.59761, -0.71714, 0.00000},
         .{0.00000, 0.00000, 0.00000, 1.00000},
     };
-    try expect(mat.equal(t, a, 0.00001));
+    try expect(mat.equal(t, a));
 }
