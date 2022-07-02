@@ -75,7 +75,7 @@ pub fn shadeHit(w: World, comps: int.Computation) cnv.Color {
 }
 
 pub fn colorAt(w: World, r: ray.Ray) !cnv.Color {
-    var intersections = std.ArrayList(int.Intersection).init(std.testing.allocator);
+    var intersections = std.ArrayList(int.Intersection).init(w.allocator);
     defer intersections.deinit();
 
     try intersectWorld(&intersections, w, r);
