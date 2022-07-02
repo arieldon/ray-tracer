@@ -63,7 +63,7 @@ pub fn mulTuple(a: Matrix, b: Tuple) Tuple {
     return .{ tup.dot(a[0], b), tup.dot(a[1], b), tup.dot(a[2], b), tup.dot(a[3], b) };
 }
 
-fn typeMulOp(comptime t0: type, t1: type) type {
+fn typeMulOp(comptime t0: type, comptime t1: type) type {
     if (t0 == Matrix and t1 == Matrix) {
         return Matrix;
     } else if (t0 == Matrix and t1 == Tuple) {
