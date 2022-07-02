@@ -30,6 +30,7 @@ pub fn lighting(
         point: tup.Point,
         eye: tup.Vector,
         normal: tup.Vector,
+        in_shadow: bool,
 ) cnv.Color {
     const effective_color = mtl.color * light.intensity;
     const light_direction = tup.normalize(light.position - point);
@@ -37,6 +38,12 @@ pub fn lighting(
     // Compute the ambient contribution. In the Phong model, ambient
     // contribution is constant across the entire surface of the object.
     const ambient = effective_color * @splat(3, mtl.ambient);
+
+    // If the point falls under a shadow, the Phong reflection models ignores
+    // the contributions of diffuse and specular lighting because both depend
+    // on the light source, and the light source doesn't contribute to points
+    // engulfed in a shadow.
+    if (in_shadow) return ambient;
 
     // Diffuse reflection depends on the angle between the light source and the
     // surface normal.
@@ -87,7 +94,8 @@ test "lighting with the eye between the light and the surface" {
     const eyev = tup.vector(0, 0, -1);
     const normalv = tup.vector(0, 0, -1);
     const light = lht.pointLight(tup.point(0, 0, -10), cnv.color(1, 1, 1));
-    const result = lighting(m, light, position, eyev, normalv);
+    const in_shadow = false;
+    const result = lighting(m, light, position, eyev, normalv, in_shadow);
     try expectEqual(result, cnv.color(1.9, 1.9, 1.9));
 }
 
@@ -98,7 +106,8 @@ test "lighting with the eye between light and surface, eye offset 45 degrees" {
     const eyev = tup.vector(0, a, -a);
     const normalv = tup.vector(0, 0, -1);
     const light = lht.pointLight(tup.point(0, 0, -10), cnv.color(1, 1, 1));
-    const result = lighting(m, light, position, eyev, normalv);
+    const in_shadow = false;
+    const result = lighting(m, light, position, eyev, normalv, in_shadow);
     try expectEqual(result, cnv.color(1.0, 1.0, 1.0));
 }
 
@@ -108,7 +117,8 @@ test "lighting with eye opposite surface, light offset 45 degrees" {
     const eyev = tup.vector(0, 0, -1);
     const normalv = tup.vector(0, 0, -1);
     const light = lht.pointLight(tup.point(0, 10, -10), cnv.color(1, 1, 1));
-    const result = lighting(m, light, position, eyev, normalv);
+    const in_shadow = false;
+    const result = lighting(m, light, position, eyev, normalv, in_shadow);
     try expect(cnv.equal(result, cnv.color(0.7364, 0.7364, 0.7364)));
 }
 
@@ -119,7 +129,8 @@ test "lighting with eye in the path of the reflection vector" {
     const eyev = tup.vector(0, -a, -a);
     const normalv = tup.vector(0, 0, -1);
     const light = lht.pointLight(tup.point(0, 10, -10), cnv.color(1, 1, 1));
-    const result = lighting(m, light, position, eyev, normalv);
+    const in_shadow = false;
+    const result = lighting(m, light, position, eyev, normalv, in_shadow);
     try expect(cnv.equal(result, cnv.color(1.6364, 1.6364, 1.6364)));
 }
 
@@ -129,6 +140,18 @@ test "lighting with the light behind the surface" {
     const eyev = tup.vector(0, 0, -1);
     const normalv = tup.vector(0, 0, -1);
     const light = lht.pointLight(tup.point(0, 0, 10), cnv.color(1, 1, 1));
-    const result = lighting(m, light, position, eyev, normalv);
+    const in_shadow = false;
+    const result = lighting(m, light, position, eyev, normalv, in_shadow);
+    try expectEqual(result, cnv.color(0.1, 0.1, 0.1));
+}
+
+test "lighting with the surface in a shadow" {
+    const m = material();
+    const position = tup.point(0, 0, 0);
+    const eye = tup.vector(0, 0, -1);
+    const normal = tup.vector(0, 0, -1);
+    const light = lht.pointLight(tup.point(0, 0, -10), cnv.color(1, 1, 1));
+    const in_shadow = true;
+    const result = lighting(m, light, position, eye, normal, in_shadow);
     try expectEqual(result, cnv.color(0.1, 0.1, 0.1));
 }

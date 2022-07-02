@@ -70,8 +70,15 @@ pub fn intersectWorld(xs: *std.ArrayList(int.Intersection), w: World, r: ray.Ray
     _ = int.hit(xs);
 }
 
-pub fn shadeHit(w: World, comps: int.Computation) cnv.Color {
-    return mtl.lighting(comps.object.material, w.light.?, comps.point, comps.eye, comps.normal);
+pub fn shadeHit(w: World, comps: int.Computation) !cnv.Color {
+    const shadowed = try isShadowed(w, comps.over_point);
+    return mtl.lighting(
+        comps.object.material,
+        w.light.?,
+        comps.over_point,
+        comps.eye,
+        comps.normal,
+        shadowed);
 }
 
 pub fn colorAt(w: World, r: ray.Ray) !cnv.Color {
@@ -84,6 +91,29 @@ pub fn colorAt(w: World, r: ray.Ray) !cnv.Color {
         return shadeHit(w, comps);
     }
     return cnv.color(0, 0, 0);
+}
+
+pub fn isShadowed(w: World, p: tup.Point) !bool {
+    // Mesasure distance from point to light source and calculate magnitude of
+    // resulting vector.
+    const v = w.light.?.position - p;
+    const distance = tup.magnitude(v);
+
+    // Create shadow ray to cast. If between the point and the light source,
+    // this ray intersects an object, then a shadow engulfs that object.
+    const direction = tup.normalize(v);
+    const shadow_ray = ray.ray(p, direction);
+
+    var intersections = std.ArrayList(int.Intersection).init(w.allocator);
+    defer intersections.deinit();
+
+    try intersectWorld(&intersections, w, shadow_ray);
+
+    // Again, if the shadow ray intersects an object at some point in the
+    // distance between the light source and the point, then the object lies
+    // within a shadow.
+    if (int.hit(&intersections)) |hit| return hit.t < distance;
+    return false;
 }
 
 test "creating a world" {
@@ -141,7 +171,7 @@ test "shading an intersection" {
     const i = int.intersection(4, shape);
 
     const comps = int.prepareComputations(i, r);
-    const c = shadeHit(w, comps);
+    const c = try shadeHit(w, comps);
 
     try expect(cnv.equal(c, cnv.color(0.38066, 0.47583, 0.2855)));
 }
@@ -156,7 +186,7 @@ test "shading an intersection from the inside" {
     const i = int.intersection(0.5, shape);
 
     const comps = int.prepareComputations(i, r);
-    const c = shadeHit(w, comps);
+    const c = try shadeHit(w, comps);
 
     try expect(cnv.equal(c, cnv.color(0.90498, 0.90498, 0.90498)));
 }
@@ -195,4 +225,56 @@ test "the color with an intersection behind the ray" {
     const c = try colorAt(w, r);
 
     try expectEqual(c, inner.material.color);
+}
+
+test "there is no shadow when nothing is collinear with point and light" {
+    var w = try defaultWorld(std.testing.allocator);
+    defer w.deinit();
+
+    const p = tup.point(0, 10, 0);
+    try expect(!try isShadowed(w, p));
+}
+
+test "the shadow when an object is between the point and the light" {
+    var w = try defaultWorld(std.testing.allocator);
+    defer w.deinit();
+
+    const p = tup.point(10, -10, 10);
+    try expect(try isShadowed(w, p));
+}
+
+test "there is no shadow when an object is behind the light" {
+    var w = try defaultWorld(std.testing.allocator);
+    defer w.deinit();
+
+    const p = tup.point(-20, 20, -20);
+    try expect(!try isShadowed(w, p));
+}
+
+test "there is no shadow when an object is behind the point" {
+    var w = try defaultWorld(std.testing.allocator);
+    defer w.deinit();
+
+    const p = tup.point(-2, 2, -2);
+    try expect(!try isShadowed(w, p));
+}
+
+test "shadeHit() is given an intersection in shadow" {
+    var w = world(std.testing.allocator);
+    w.light = lht.pointLight(tup.point(0, 0, -10), cnv.color(1, 1, 1));
+    defer w.deinit();
+
+    var s1 = sph.sphere();
+    try w.objects.append(s1);
+
+    var s2 = sph.sphere();
+    s2.transform = mat.translation(0, 0, 10);
+    try w.objects.append(s2);
+
+    const r = ray.ray(tup.point(0, 0, 5), tup.vector(0, 0, 1));
+    const i = int.intersection(4, s2);
+
+    const comps = int.prepareComputations(i, r);
+    const c = try shadeHit(w, comps);
+    try expectEqual(c, cnv.color(0.1, 0.1, 0.1));
 }

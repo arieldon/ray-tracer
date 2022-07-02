@@ -1,5 +1,8 @@
 const std = @import("std");
+const expect = std.testing.expect;
 const expectEqual = std.testing.expectEqual;
+const cnv = @import("canvas.zig");
+const mat = @import("matrix.zig");
 const ray = @import("ray.zig");
 const sph = @import("sphere.zig");
 const tup = @import("tuple.zig");
@@ -41,6 +44,7 @@ pub const Computation = struct {
     t: f32,
     object: sph.Sphere,
     point: tup.Point,
+    over_point: tup.Point,
     eye: tup.Vector,
     normal: tup.Vector,
     inside: bool,
@@ -64,6 +68,11 @@ pub fn prepareComputations(i: Intersection, r: ray.Ray) Computation {
     } else {
         comps.inside = false;
     }
+
+    // Slightly adjust point in direction of normal vector to move the point
+    // above the surface of the shape, effectively preventing the grain from
+    // self-shadowing.
+    comps.over_point = comps.point + comps.normal * @splat(4, cnv.color_epsilon);
 
     return comps;
 }
@@ -167,4 +176,17 @@ test "the hit, when an intersection occurs on the inside" {
     try expectEqual(comps.eye, tup.vector(0, 0, -1));
     try expectEqual(comps.inside, true);
     try expectEqual(comps.normal, tup.vector(0, 0, -1));
+}
+
+test "the hit should offset the point" {
+    const r = ray.ray(tup.point(0, 0, -5), tup.vector(0, 0, 1));
+
+    var shape = sph.sphere();
+    shape.transform = mat.translation(0, 0, 1);
+
+    const i = intersection(5, shape);
+    const comps = prepareComputations(i, r);
+
+    try expect(comps.over_point[2] < -cnv.color_epsilon / 2.0);
+    try expect(comps.point[2] > comps.over_point[2]);
 }

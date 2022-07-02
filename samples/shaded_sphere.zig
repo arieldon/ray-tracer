@@ -51,7 +51,8 @@ pub fn main() !void {
                     light,
                     point,
                     eye,
-                    normal);
+                    normal,
+                    false);
                 canvas.writePixel(x, y, color);
             }
 

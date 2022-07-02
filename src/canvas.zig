@@ -5,6 +5,10 @@ const tuple = @import("tuple.zig");
 
 pub const Color = @Vector(3, f32);
 
+// The epsilon for color comparison differs from that of tuples because a
+// smaller epsilon caused a lot of grain in the scene.
+pub const color_epsilon: f32 = 0.01;
+
 pub fn color(r: f32, g: f32, b: f32) Color {
     return .{ r, g, b };
 }
@@ -12,7 +16,8 @@ pub fn color(r: f32, g: f32, b: f32) Color {
 pub fn equal(a: Color, b: Color) bool {
     // NOTE: This isn't a very precise equality test, especially as values
     // approach zero, but it serves its purpose, at least for now.
-    return @reduce(.And, @fabs(a - b) <= @splat(3, @as(f32, 0.0001)));
+    const epsilon = @splat(3, color_epsilon);
+    return @reduce(.And, @fabs(a - b) <= epsilon);
 }
 
 pub const Canvas = struct {
