@@ -6,6 +6,7 @@ pub const int = @import("intersection.zig");
 pub const lht = @import("light.zig");
 pub const mat = @import("matrix.zig");
 pub const mtl = @import("material.zig");
+pub const pat = @import("pattern.zig");
 pub const pln = @import("plane.zig");
 pub const ray = @import("ray.zig");
 pub const shp = @import("shape.zig");

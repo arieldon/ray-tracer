@@ -3,10 +3,12 @@ const expect = std.testing.expect;
 const expectEqual = std.testing.expectEqual;
 const cnv = @import("canvas.zig");
 const lht = @import("light.zig");
+const pat = @import("pattern.zig");
 const tup = @import("tuple.zig");
 
 pub const Material = struct {
     color: cnv.Color,
+    pattern: ?pat.StripePattern,
     ambient: f32,   // Ambient reflection is background lighting.
     diffuse: f32,   // Diffuse reflection is light reflected from a matte surface.
     specular: f32,  // Specular reflection is the reflection of the light source itself.
@@ -16,6 +18,7 @@ pub const Material = struct {
 pub fn material() Material {
     return .{
         .color = cnv.color(1, 1, 1),
+        .pattern = null,
         .ambient = 0.1,
         .diffuse = 0.9,
         .specular = 0.9,
@@ -32,7 +35,8 @@ pub fn lighting(
         normal: tup.Vector,
         in_shadow: bool,
 ) cnv.Color {
-    const effective_color = mtl.color * light.intensity;
+    const color = if (mtl.pattern != null) mtl.pattern.?.stripeAt(point) else mtl.color;
+    const effective_color = color * light.intensity;
     const light_direction = tup.normalize(light.position - point);
 
     // Compute the ambient contribution. In the Phong model, ambient
@@ -154,4 +158,21 @@ test "lighting with the surface in a shadow" {
     const in_shadow = true;
     const result = lighting(m, light, position, eye, normal, in_shadow);
     try expectEqual(result, cnv.color(0.1, 0.1, 0.1));
+}
+
+test "lighting with a pattern applied" {
+    var m = material();
+    m.pattern = pat.StripePattern{ .a = cnv.color(1, 1, 1), .b = cnv.color(0, 0, 0) };
+    m.ambient = 1;
+    m.diffuse = 0;
+    m.specular = 0;
+
+    const eye = tup.vector(0, 0, -1);
+    const normal = tup.vector(0, 0, -1);
+    const light = lht.pointLight(tup.point(0, 0, -10), cnv.color(1, 1, 1));
+
+    const c1 = lighting(m, light, tup.point(0.9, 0, 0), eye, normal, false);
+    const c2 = lighting(m, light, tup.point(1.1, 0, 0), eye, normal, false);
+    try expectEqual(c1, cnv.color(1, 1, 1));
+    try expectEqual(c2, cnv.color(0, 0, 0));
 }
