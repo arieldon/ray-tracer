@@ -7,6 +7,8 @@ pub const Tuple = @Vector(4, f32);
 pub const Vector = Tuple;
 pub const Point = Tuple;
 
+pub const epsilon = 0.00001;
+
 pub fn tuple(x: f32, y: f32, z: f32, w: f32) Tuple {
     return .{ x, y, z, w };
 }
@@ -30,8 +32,7 @@ pub fn isVector(t: Tuple) bool {
 pub fn equal(a: Tuple, b: Tuple) bool {
     // NOTE: This isn't a very precise equality test, especially as values
     // approach zero, but it serves its purpose, at least for now.
-    const epsilon = @splat(4, @as(f32, 0.00001));
-    return @reduce(.And, @fabs(a - b) <= epsilon);
+    return @reduce(.And, @fabs(a - b) <= @splat(4, @as(f32, epsilon)));
 }
 
 pub fn dot(u: Vector, v: Vector) f32 {

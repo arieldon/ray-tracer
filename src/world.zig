@@ -6,49 +6,62 @@ const int = @import("intersection.zig");
 const lht = @import("light.zig");
 const mat = @import("matrix.zig");
 const mtl = @import("material.zig");
+const pln = @import("plane.zig");
 const ray = @import("ray.zig");
 const sph = @import("sphere.zig");
 const tup = @import("tuple.zig");
 
 pub const World = struct {
+    // FIXME Require a light for the scene. A scene without light isn't
+    // particularly useful, and marking the light as optional forces
+    // inefficient null checks later.
     light: ?lht.PointLight,
-    objects: std.ArrayList(sph.Sphere),
+    spheres: std.ArrayList(sph.Sphere),
+    planes: std.ArrayList(pln.Plane),
     allocator: std.mem.Allocator,
 
     pub fn init(allocator: std.mem.Allocator) World {
         return .{
             .light = null,
-            .objects = std.ArrayList(sph.Sphere).init(allocator),
+            .spheres = std.ArrayList(sph.Sphere).init(allocator),
+            .planes = std.ArrayList(pln.Plane).init(allocator),
             .allocator = allocator,
         };
     }
 
-    pub fn defaultInit(allocator: std.mem.Allocator) !World {
+    // The tests below rely on this function.
+    fn defaultInit(allocator: std.mem.Allocator) !World {
         var w = World.init(allocator);
 
         // Add default light source.
         w.light = lht.pointLight(tup.point(-10, 10, -10), cnv.color(1, 1, 1));
 
         var s1 = sph.sphere();
-        s1.material.color = cnv.color(0.8, 1.0, 0.6);
-        s1.material.diffuse = 0.7;
-        s1.material.specular = 0.2;
+        s1.shape.material.color = cnv.color(0.8, 1.0, 0.6);
+        s1.shape.material.diffuse = 0.7;
+        s1.shape.material.specular = 0.2;
 
         var s2 = sph.sphere();
-        s2.transform = mat.scaling(0.5, 0.5, 0.5);
+        s2.shape.transform = mat.scaling(0.5, 0.5, 0.5);
 
-        // Add default objects to the world.
-        try w.objects.appendSlice(&[_]sph.Sphere{ s1, s2 });
+        // Add default spheres to the world.
+        try w.spheres.appendSlice(&[_]sph.Sphere{ s1, s2 });
 
         return w;
     }
 
     pub fn deinit(self: World) void {
-        self.objects.deinit();
+        self.spheres.deinit();
+        self.planes.deinit();
     }
 
-    pub fn contains(self: World, object: sph.Sphere) bool {
-        for (self.objects.items) |world_object| if (sph.equal(object, world_object)) return true;
+    pub fn containsSphere(self: World, s: sph.Sphere) bool {
+        for (self.spheres.items) |t| if (sph.equal(s, t)) return true;
+        return false;
+    }
+
+    pub fn containsPlane(self: World, p: pln.Plane) bool {
+        for (self.planes.items) |q| if (std.meta.equal(p, q)) return true;
         return false;
     }
 };
@@ -64,7 +77,8 @@ pub inline fn defaultWorld(allocator: std.mem.Allocator) !World {
 pub fn intersectWorld(xs: *std.ArrayList(int.Intersection), w: World, r: ray.Ray) !void {
     // Cast a ray through each object in the world and append any intersections
     // to the list.
-    for (w.objects.items) |object| try sph.intersect(xs, object, r);
+    for (w.spheres.items) |sphere| try sph.intersect(xs, sphere, r);
+    for (w.planes.items)  |plane|  try pln.intersect(xs, plane, r);
 
     // Call hit() only to sort the intersections.
     _ = int.hit(xs);
@@ -73,7 +87,7 @@ pub fn intersectWorld(xs: *std.ArrayList(int.Intersection), w: World, r: ray.Ray
 pub fn shadeHit(w: World, comps: int.Computation) !cnv.Color {
     const shadowed = try isShadowed(w, comps.over_point);
     return mtl.lighting(
-        comps.object.material,
+        comps.shape.material,
         w.light.?,
         comps.over_point,
         comps.eye,
@@ -120,7 +134,7 @@ test "creating a world" {
     const w = world(std.testing.allocator);
     defer w.deinit();
 
-    try expectEqual(w.objects.items.len, 0);
+    try expectEqual(w.spheres.items.len, 0);
     try expectEqual(w.light, null);
 }
 
@@ -129,20 +143,20 @@ test "the default world" {
 
     var s1 = sph.sphere();
     s1.id = 0;
-    s1.material.color = cnv.color(0.8, 1.0, 0.6);
-    s1.material.diffuse = 0.7;
-    s1.material.specular = 0.2;
+    s1.shape.material.color = cnv.color(0.8, 1.0, 0.6);
+    s1.shape.material.diffuse = 0.7;
+    s1.shape.material.specular = 0.2;
 
     var s2 = sph.sphere();
     s2.id = 1;
-    s2.transform = mat.scaling(0.5, 0.5, 0.5);
+    s2.shape.transform = mat.scaling(0.5, 0.5, 0.5);
 
     const w = try defaultWorld(std.testing.allocator);
     defer w.deinit();
 
     try expectEqual(w.light, light);
-    try expect(w.contains(s1));
-    try expect(w.contains(s2));
+    try expect(w.containsSphere(s1));
+    try expect(w.containsSphere(s2));
 }
 
 test "intersect a world with a ray" {
@@ -167,8 +181,8 @@ test "shading an intersection" {
     defer w.deinit();
 
     const r = ray.ray(tup.point(0, 0, -5), tup.vector(0, 0, 1));
-    const shape = w.objects.items[0];
-    const i = int.intersection(4, shape);
+    const s = w.spheres.items[0];
+    const i = int.intersection(4, s.shape);
 
     const comps = int.prepareComputations(i, r);
     const c = try shadeHit(w, comps);
@@ -182,8 +196,8 @@ test "shading an intersection from the inside" {
     defer w.deinit();
 
     const r = ray.ray(tup.point(0, 0, 0), tup.vector(0, 0, 1));
-    const shape = w.objects.items[1];
-    const i = int.intersection(0.5, shape);
+    const s = w.spheres.items[1];
+    const i = int.intersection(0.5, s.shape);
 
     const comps = int.prepareComputations(i, r);
     const c = try shadeHit(w, comps);
@@ -215,16 +229,16 @@ test "the color with an intersection behind the ray" {
     var w = try defaultWorld(std.testing.allocator);
     defer w.deinit();
 
-    var outer = &w.objects.items[0];
-    outer.material.ambient = 1;
+    var outer = &w.spheres.items[0];
+    outer.shape.material.ambient = 1;
 
-    var inner = &w.objects.items[1];
-    inner.material.ambient = 1;
+    var inner = &w.spheres.items[1];
+    inner.shape.material.ambient = 1;
 
     const r = ray.ray(tup.point(0, 0, 0.75), tup.vector(0, 0, -1));
     const c = try colorAt(w, r);
 
-    try expectEqual(c, inner.material.color);
+    try expectEqual(c, inner.shape.material.color);
 }
 
 test "there is no shadow when nothing is collinear with point and light" {
@@ -265,14 +279,14 @@ test "shadeHit() is given an intersection in shadow" {
     defer w.deinit();
 
     var s1 = sph.sphere();
-    try w.objects.append(s1);
+    try w.spheres.append(s1);
 
     var s2 = sph.sphere();
-    s2.transform = mat.translation(0, 0, 10);
-    try w.objects.append(s2);
+    s2.shape.transform = mat.translation(0, 0, 10);
+    try w.spheres.append(s2);
 
     const r = ray.ray(tup.point(0, 0, 5), tup.vector(0, 0, 1));
-    const i = int.intersection(4, s2);
+    const i = int.intersection(4, s2.shape);
 
     const comps = int.prepareComputations(i, r);
     const c = try shadeHit(w, comps);

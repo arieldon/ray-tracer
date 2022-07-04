@@ -10,7 +10,7 @@ pub fn main() !void {
     const pixel_size = wall_size / @intToFloat(f32, canvas_pixels);
     const half = wall_size / 2.0;
 
-    const shape = rt.sph.sphere();
+    const sphere = rt.sph.sphere();
     const color = rt.cnv.color(1, 0, 0);
     const ray_origin = rt.tup.point(0, 0, -5);
 
@@ -32,7 +32,7 @@ pub fn main() !void {
 
             // Calculate ray-sphere intersections and paint hits red. Points
             // where no intersection occurs remain their default black.
-            try rt.sph.intersect(&intersections, shape, r);
+            try rt.sph.intersect(&intersections, sphere, r);
             if (rt.int.hit(&intersections) != null) canvas.writePixel(x, y, color);
 
             // Reset list.

@@ -11,69 +11,69 @@ pub fn main() !void {
 
     // Create the floor using a large, flattened sphere.
     var floor = rt.sph.sphere();
-    floor.transform = rt.mat.scaling(10, 0.01, 10);
-    floor.material = rt.mtl.material();
-    floor.material.color = rt.cnv.color(1, 0.9, 0.9);
-    floor.material.specular = 0;
+    floor.shape.transform = rt.mat.scaling(10, 0.01, 10);
+    floor.shape.material = rt.mtl.material();
+    floor.shape.material.color = rt.cnv.color(1, 0.9, 0.9);
+    floor.shape.material.specular = 0;
 
     // Create the wall on the left in a similar fashion to the floor, rotating
     // and translating it as well.
     var left_wall = rt.sph.sphere();
-    left_wall.transform = rt.mat.mul(
+    left_wall.shape.transform = rt.mat.mul(
         rt.mat.mul(
             rt.mat.translation(0, 0, 5),
             rt.mat.mul(rt.mat.rotationY(-std.math.pi / 4.0), rt.mat.rotationX(std.math.pi / 2.0))),
         rt.mat.scaling(10, 0.01, 10));
-    left_wall.material = floor.material;
+    left_wall.shape.material = floor.shape.material;
 
     // Create the wall on the right.
     var right_wall = rt.sph.sphere();
-    right_wall.transform = rt.mat.mul(
+    right_wall.shape.transform = rt.mat.mul(
         rt.mat.mul(
             rt.mat.translation(0, 0, 5),
             rt.mat.mul(rt.mat.rotationY(std.math.pi / 4.0), rt.mat.rotationX(std.math.pi / 2.0))),
         rt.mat.scaling(10, 0.01, 10));
-    right_wall.material = floor.material;
+    right_wall.shape.material = floor.shape.material;
 
     // Create the unit sphere slightly above the center of the scene.
     var middle = rt.sph.sphere();
-    middle.transform = rt.mat.translation(-0.5, 1, 0.5);
-    middle.material = rt.mtl.material();
-    middle.material.color = rt.cnv.color(0.1, 1, 0.5);
-    middle.material.diffuse = 0.7;
-    middle.material.specular = 0.3;
+    middle.shape.transform = rt.mat.translation(-0.5, 1, 0.5);
+    middle.shape.material = rt.mtl.material();
+    middle.shape.material.color = rt.cnv.color(0.1, 1, 0.5);
+    middle.shape.material.diffuse = 0.7;
+    middle.shape.material.specular = 0.3;
 
     // Create the smaller sphere on the right.
     var right = rt.sph.sphere();
-    right.transform = rt.mat.mul(
+    right.shape.transform = rt.mat.mul(
         rt.mat.translation(1.5, 0.5, -0.5), rt.mat.scaling(0.5, 0.5, 0.5));
-    right.material = rt.mtl.material();
-    right.material.color = rt.cnv.color(0.5, 1, 0.1);
-    right.material.diffuse = 0.7;
-    right.material.specular = 0.3;
+    right.shape.material = rt.mtl.material();
+    right.shape.material.color = rt.cnv.color(0.5, 1, 0.1);
+    right.shape.material.diffuse = 0.7;
+    right.shape.material.specular = 0.3;
 
     // Create the smallest sphere in the scene on the left.
     var left = rt.sph.sphere();
-    left.transform = rt.mat.mul(
+    left.shape.transform = rt.mat.mul(
         rt.mat.translation(-1.5, 0.33, -0.75), rt.mat.scaling(0.33, 0.33, 0.33));
-    left.material = rt.mtl.material();
-    left.material.color = rt.cnv.color(1, 0.8, 0.1);
-    left.material.diffuse = 0.7;
-    left.material.specular = 0.3;
+    left.shape.material = rt.mtl.material();
+    left.shape.material.color = rt.cnv.color(1, 0.8, 0.1);
+    left.shape.material.diffuse = 0.7;
+    left.shape.material.specular = 0.3;
 
     // Allocate world.
     var world = rt.wrd.world(allocator);
-    world.deinit();
+    defer world.deinit();
 
     // Add floor and walls to the world.
-    try world.objects.append(floor);
-    try world.objects.append(left_wall);
-    try world.objects.append(right_wall);
+    try world.spheres.append(floor);
+    try world.spheres.append(left_wall);
+    try world.spheres.append(right_wall);
 
     // Add spheres to the world.
-    try world.objects.append(middle);
-    try world.objects.append(right);
-    try world.objects.append(left);
+    try world.spheres.append(middle);
+    try world.spheres.append(right);
+    try world.spheres.append(left);
 
     // Configure the world's light source.
     world.light = rt.lht.pointLight(rt.tup.point(-10, 10, -10), rt.cnv.color(1, 1, 1));

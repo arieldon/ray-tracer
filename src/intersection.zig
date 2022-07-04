@@ -3,19 +3,21 @@ const expect = std.testing.expect;
 const expectEqual = std.testing.expectEqual;
 const cnv = @import("canvas.zig");
 const mat = @import("matrix.zig");
+const pln = @import("plane.zig");
 const ray = @import("ray.zig");
+const shp = @import("shape.zig");
 const sph = @import("sphere.zig");
 const tup = @import("tuple.zig");
 
 pub const Intersection = struct {
     t: f32,
-    object: sph.Sphere,
+    shape: shp.Shape,
 };
 
-pub fn intersection(t: f32, s: sph.Sphere) Intersection {
+pub fn intersection(t: f32, s: shp.Shape) Intersection {
     return Intersection{
         .t = t,
-        .object = s,
+        .shape = s,
     };
 }
 
@@ -42,7 +44,7 @@ pub fn hit(xs: *std.ArrayList(Intersection)) ?Intersection {
 
 pub const Computation = struct {
     t: f32,
-    object: sph.Sphere,
+    shape: shp.Shape,
     point: tup.Point,
     over_point: tup.Point,
     eye: tup.Vector,
@@ -55,12 +57,15 @@ pub fn prepareComputations(i: Intersection, r: ray.Ray) Computation {
 
     // Copy properties of intersection.
     comps.t = i.t;
-    comps.object = i.object;
+    comps.shape = i.shape;
 
     // Precompute useful values.
     comps.point = ray.position(r, i.t);
     comps.eye = -r.direction;
-    comps.normal = sph.normal_at(i.object, comps.point);
+    comps.normal = switch (i.shape.shape_type) {
+        .sphere => sph.normal_at(i.shape, comps.point),
+        .plane  => pln.normal_at(i.shape, comps.point),
+    };
 
     if (tup.dot(comps.normal, comps.eye) < 0) {
         comps.inside = true;
@@ -79,15 +84,15 @@ pub fn prepareComputations(i: Intersection, r: ray.Ray) Computation {
 
 test "an intersection encapsulates t and object" {
     const s = sph.sphere();
-    const i = intersection(3.5, s);
+    const i = intersection(3.5, s.shape);
     try expectEqual(i.t, 3.5);
-    try expectEqual(i.object, s);
+    try expectEqual(i.shape, s.shape);
 }
 
 test "aggregating intersections" {
     const s = sph.sphere();
-    const intersection1 = intersection(1, s);
-    const intersection2 = intersection(2, s);
+    const intersection1 = intersection(1, s.shape);
+    const intersection2 = intersection(2, s.shape);
     var xs = std.ArrayList(Intersection).init(std.testing.allocator);
     defer xs.deinit();
 
@@ -99,8 +104,8 @@ test "aggregating intersections" {
 
 test "the hit, when all intersections have positive t" {
     const s = sph.sphere();
-    const int1 = intersection(1, s);
-    const int2 = intersection(2, s);
+    const int1 = intersection(1, s.shape);
+    const int2 = intersection(2, s.shape);
     var xs = std.ArrayList(Intersection).init(std.testing.allocator);
     defer xs.deinit();
 
@@ -111,8 +116,8 @@ test "the hit, when all intersections have positive t" {
 
 test "the hit, when some intersections have negative t" {
     const s = sph.sphere();
-    const int1 = intersection(-1, s);
-    const int2 = intersection(1, s);
+    const int1 = intersection(-1, s.shape);
+    const int2 = intersection(1, s.shape);
     var xs = std.ArrayList(Intersection).init(std.testing.allocator);
     defer xs.deinit();
 
@@ -123,8 +128,8 @@ test "the hit, when some intersections have negative t" {
 
 test "the hit, when all intersections have negative t" {
     const s = sph.sphere();
-    const int1 = intersection(-2, s);
-    const int2 = intersection(-1, s);
+    const int1 = intersection(-2, s.shape);
+    const int2 = intersection(-1, s.shape);
     var xs = std.ArrayList(Intersection).init(std.testing.allocator);
     defer xs.deinit();
 
@@ -135,10 +140,10 @@ test "the hit, when all intersections have negative t" {
 
 test "the hit is always the lowest nonnegative intersection" {
     const s = sph.sphere();
-    const int1 = intersection(5, s);
-    const int2 = intersection(7, s);
-    const int3 = intersection(-3, s);
-    const int4 = intersection(2, s);
+    const int1 = intersection(5, s.shape);
+    const int2 = intersection(7, s.shape);
+    const int3 = intersection(-3, s.shape);
+    const int4 = intersection(2, s.shape);
     var xs = std.ArrayList(Intersection).init(std.testing.allocator);
     defer xs.deinit();
 
@@ -149,11 +154,11 @@ test "the hit is always the lowest nonnegative intersection" {
 
 test "precomputing the state of an intersection" {
     const r = ray.ray(tup.point(0, 0, -5), tup.vector(0, 0, 1));
-    const shape = sph.sphere();
-    const i = intersection(4, shape);
+    const s = sph.sphere();
+    const i = intersection(4, s.shape);
     const comps = prepareComputations(i, r);
     try expectEqual(comps.t, i.t);
-    try expectEqual(comps.object, i.object);
+    try expectEqual(comps.shape, i.shape);
     try expectEqual(comps.point, tup.point(0, 0, -1));
     try expectEqual(comps.eye, tup.vector(0, 0, -1));
     try expectEqual(comps.normal, tup.vector(0, 0, -1));
@@ -161,16 +166,16 @@ test "precomputing the state of an intersection" {
 
 test "the hit, when an intersection occurs on the outside" {
     const r = ray.ray(tup.point(0, 0, -5), tup.vector(0, 0, 1));
-    const shape = sph.sphere();
-    const i = intersection(4, shape);
+    const s = sph.sphere();
+    const i = intersection(4, s.shape);
     const comps = prepareComputations(i, r);
     try expectEqual(comps.inside, false);
 }
 
 test "the hit, when an intersection occurs on the inside" {
     const r = ray.ray(tup.point(0, 0, 0), tup.vector(0, 0, 1));
-    const shape = sph.sphere();
-    const i = intersection(1, shape);
+    const s = sph.sphere();
+    const i = intersection(1, s.shape);
     const comps = prepareComputations(i, r);
     try expectEqual(comps.point, tup.point(0, 0, 1));
     try expectEqual(comps.eye, tup.vector(0, 0, -1));
@@ -181,10 +186,10 @@ test "the hit, when an intersection occurs on the inside" {
 test "the hit should offset the point" {
     const r = ray.ray(tup.point(0, 0, -5), tup.vector(0, 0, 1));
 
-    var shape = sph.sphere();
-    shape.transform = mat.translation(0, 0, 1);
+    var s = sph.sphere();
+    s.shape.transform = mat.translation(0, 0, 1);
 
-    const i = intersection(5, shape);
+    const i = intersection(5, s.shape);
     const comps = prepareComputations(i, r);
 
     try expect(comps.over_point[2] < -cnv.color_epsilon / 2.0);
