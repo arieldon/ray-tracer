@@ -77,7 +77,7 @@ pub fn prepareComputations(i: Intersection, r: ray.Ray) Computation {
     // Slightly adjust point in direction of normal vector to move the point
     // above the surface of the shape, effectively preventing the grain from
     // self-shadowing.
-    comps.over_point = comps.point + comps.normal * @splat(4, cnv.color_epsilon);
+    comps.over_point = comps.point + comps.normal * @splat(4, @as(f32, tup.epsilon));
 
     return comps;
 }
@@ -192,6 +192,6 @@ test "the hit should offset the point" {
     const i = intersection(5, s.shape);
     const comps = prepareComputations(i, r);
 
-    try expect(comps.over_point[2] < -cnv.color_epsilon / 2.0);
+    try expect(comps.over_point[2] < -tup.epsilon / 2.0);
     try expect(comps.point[2] > comps.over_point[2]);
 }
