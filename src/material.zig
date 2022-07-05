@@ -4,6 +4,8 @@ const expectEqual = std.testing.expectEqual;
 const cnv = @import("canvas.zig");
 const lht = @import("light.zig");
 const pat = @import("pattern.zig");
+const shp = @import("shape.zig");
+const sph = @import("sphere.zig");
 const tup = @import("tuple.zig");
 
 pub const Material = struct {
@@ -17,20 +19,28 @@ pub const Material = struct {
 
 // Use the Phong reflection model.
 pub fn lighting(
-        mtl: Material,
+        shape: shp.Shape,
         light: lht.PointLight,
         point: tup.Point,
         eye: tup.Vector,
         normal: tup.Vector,
         in_shadow: bool,
 ) cnv.Color {
-    const color = if (mtl.pattern != null) mtl.pattern.?.stripeAt(point) else mtl.color;
+    const material = shape.material;
+
+    var color: cnv.Color = undefined;
+    if (material.pattern != null) {
+        color = material.pattern.?.stripeAtShape(shape, point);
+    } else {
+        color = material.color;
+    }
+
     const effective_color = color * light.intensity;
     const light_direction = tup.normalize(light.position - point);
 
     // Compute the ambient contribution. In the Phong model, ambient
     // contribution is constant across the entire surface of the object.
-    const ambient = effective_color * @splat(3, mtl.ambient);
+    const ambient = effective_color * @splat(3, material.ambient);
 
     // If the point falls under a shadow, the Phong reflection models ignores
     // the contributions of diffuse and specular lighting because both depend
@@ -54,7 +64,7 @@ pub fn lighting(
         diffuse = cnv.color(0, 0, 0);
         specular = cnv.color(0, 0, 0);
     } else {
-        diffuse = effective_color * @splat(3, mtl.diffuse) * @splat(3, cos_light_normal);
+        diffuse = effective_color * @splat(3, material.diffuse) * @splat(3, cos_light_normal);
 
         const reflect = tup.reflect(-light_direction, normal);
         const cos_reflect_eye = tup.dot(reflect, eye);
@@ -64,8 +74,8 @@ pub fn lighting(
             // away from the eye.
             specular = cnv.color(0, 0, 0);
         } else {
-            const factor = std.math.pow(f32, cos_reflect_eye, mtl.shininess);
-            specular = light.intensity * @splat(3, mtl.specular) * @splat(3, factor);
+            const factor = std.math.pow(f32, cos_reflect_eye, material.shininess);
+            specular = light.intensity * @splat(3, material.specular) * @splat(3, factor);
         }
     }
 
@@ -82,87 +92,91 @@ test "the default material" {
 }
 
 test "lighting with the eye between the light and the surface" {
-    const m = Material{};
+    const sphere = sph.Sphere{};
     const position = tup.point(0, 0, 0);
     const eyev = tup.vector(0, 0, -1);
     const normalv = tup.vector(0, 0, -1);
     const light = lht.pointLight(tup.point(0, 0, -10), cnv.color(1, 1, 1));
     const in_shadow = false;
-    const result = lighting(m, light, position, eyev, normalv, in_shadow);
+    const result = lighting(sphere.shape, light, position, eyev, normalv, in_shadow);
     try expectEqual(result, cnv.color(1.9, 1.9, 1.9));
 }
 
 test "lighting with the eye between light and surface, eye offset 45 degrees" {
-    const m = Material{};
+    const sphere = sph.Sphere{};
     const position = tup.point(0, 0, 0);
     const a = @sqrt(2.0) / 2.0;
     const eyev = tup.vector(0, a, -a);
     const normalv = tup.vector(0, 0, -1);
     const light = lht.pointLight(tup.point(0, 0, -10), cnv.color(1, 1, 1));
     const in_shadow = false;
-    const result = lighting(m, light, position, eyev, normalv, in_shadow);
+    const result = lighting(sphere.shape, light, position, eyev, normalv, in_shadow);
     try expectEqual(result, cnv.color(1.0, 1.0, 1.0));
 }
 
 test "lighting with eye opposite surface, light offset 45 degrees" {
-    const m = Material{};
+    const sphere = sph.Sphere{};
     const position = tup.point(0, 0, 0);
     const eyev = tup.vector(0, 0, -1);
     const normalv = tup.vector(0, 0, -1);
     const light = lht.pointLight(tup.point(0, 10, -10), cnv.color(1, 1, 1));
     const in_shadow = false;
-    const result = lighting(m, light, position, eyev, normalv, in_shadow);
+    const result = lighting(sphere.shape, light, position, eyev, normalv, in_shadow);
     try expect(cnv.equal(result, cnv.color(0.7364, 0.7364, 0.7364)));
 }
 
 test "lighting with eye in the path of the reflection vector" {
-    const m = Material{};
+    const sphere = sph.Sphere{};
     const position = tup.point(0, 0, 0);
     const a = @sqrt(2.0) / 2.0;
     const eyev = tup.vector(0, -a, -a);
     const normalv = tup.vector(0, 0, -1);
     const light = lht.pointLight(tup.point(0, 10, -10), cnv.color(1, 1, 1));
     const in_shadow = false;
-    const result = lighting(m, light, position, eyev, normalv, in_shadow);
+    const result = lighting(sphere.shape, light, position, eyev, normalv, in_shadow);
     try expect(cnv.equal(result, cnv.color(1.6364, 1.6364, 1.6364)));
 }
 
 test "lighting with the light behind the surface" {
-    const m = Material{};
+    const sphere = sph.Sphere{};
     const position = tup.point(0, 0, 0);
     const eyev = tup.vector(0, 0, -1);
     const normalv = tup.vector(0, 0, -1);
     const light = lht.pointLight(tup.point(0, 0, 10), cnv.color(1, 1, 1));
     const in_shadow = false;
-    const result = lighting(m, light, position, eyev, normalv, in_shadow);
+    const result = lighting(sphere.shape, light, position, eyev, normalv, in_shadow);
     try expectEqual(result, cnv.color(0.1, 0.1, 0.1));
 }
 
 test "lighting with the surface in a shadow" {
-    const m = Material{};
+    const sphere = sph.Sphere{};
     const position = tup.point(0, 0, 0);
     const eye = tup.vector(0, 0, -1);
     const normal = tup.vector(0, 0, -1);
     const light = lht.pointLight(tup.point(0, 0, -10), cnv.color(1, 1, 1));
     const in_shadow = true;
-    const result = lighting(m, light, position, eye, normal, in_shadow);
+    const result = lighting(sphere.shape, light, position, eye, normal, in_shadow);
     try expectEqual(result, cnv.color(0.1, 0.1, 0.1));
 }
 
 test "lighting with a pattern applied" {
-    var m = Material{
-        .pattern = .{},
-        .ambient = 1,
-        .diffuse = 0,
-        .specular = 0,
+    const sphere = sph.Sphere{
+        .shape = .{
+            .shape_type = .sphere,
+            .material = .{
+                .pattern = .{},
+                .ambient = 1,
+                .diffuse = 0,
+                .specular = 0,
+            },
+        },
     };
-
     const eye = tup.vector(0, 0, -1);
     const normal = tup.vector(0, 0, -1);
     const light = lht.pointLight(tup.point(0, 0, -10), cnv.color(1, 1, 1));
 
-    const c1 = lighting(m, light, tup.point(0.9, 0, 0), eye, normal, false);
-    const c2 = lighting(m, light, tup.point(1.1, 0, 0), eye, normal, false);
+    const c1 = lighting(sphere.shape, light, tup.point(0.9, 0, 0), eye, normal, false);
+    const c2 = lighting(sphere.shape, light, tup.point(1.1, 0, 0), eye, normal, false);
     try expectEqual(c1, cnv.color(1, 1, 1));
     try expectEqual(c2, cnv.color(0, 0, 0));
 }

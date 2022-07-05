@@ -87,7 +87,7 @@ pub fn intersectWorld(xs: *std.ArrayList(int.Intersection), w: World, r: ray.Ray
 pub fn shadeHit(w: World, comps: int.Computation) !cnv.Color {
     const shadowed = try isShadowed(w, comps.over_point);
     return mtl.lighting(
-        comps.shape.material,
+        comps.shape,
         w.light.?,
         comps.over_point,
         comps.eye,

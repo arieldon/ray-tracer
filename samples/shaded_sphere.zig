@@ -47,7 +47,7 @@ pub fn main() !void {
                 const normal = rt.sph.normal_at(hit.shape, point);
                 const eye = -ray.direction;
                 const color = rt.mtl.lighting(
-                    hit.shape.material,
+                    hit.shape,
                     light,
                     point,
                     eye,
