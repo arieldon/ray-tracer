@@ -10,8 +10,8 @@ const shp = @import("shape.zig");
 const tup = @import("tuple.zig");
 
 pub const Sphere = struct {
-    shape: shp.Shape,
-    id: u8,
+    shape: shp.Shape = .{ .shape_type = .sphere },
+    id: u8 = 0,
 };
 
 pub fn sphere() Sphere {
