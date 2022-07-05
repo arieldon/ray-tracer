@@ -7,24 +7,13 @@ const pat = @import("pattern.zig");
 const tup = @import("tuple.zig");
 
 pub const Material = struct {
-    color: cnv.Color,
-    pattern: ?pat.StripePattern,
-    ambient: f32,   // Ambient reflection is background lighting.
-    diffuse: f32,   // Diffuse reflection is light reflected from a matte surface.
-    specular: f32,  // Specular reflection is the reflection of the light source itself.
-    shininess: f32, // Parameter for size of specular highlight: the bright spot on curved surface.
+    color: cnv.Color = cnv.color(1, 1, 1),
+    pattern: ?pat.StripePattern = null,
+    ambient: f32 = 0.1,     // Ambient reflection is background lighting.
+    diffuse: f32 = 0.9,     // Diffuse reflection is light reflected from a matte surface.
+    specular: f32 = 0.9,    // Specular reflection is the reflection of the light source itself.
+    shininess: f32 = 200.0, // Parameter for size of specular highlight: the bright spot on curved surface.
 };
-
-pub fn material() Material {
-    return .{
-        .color = cnv.color(1, 1, 1),
-        .pattern = null,
-        .ambient = 0.1,
-        .diffuse = 0.9,
-        .specular = 0.9,
-        .shininess = 200.0,
-    };
-}
 
 // Use the Phong reflection model.
 pub fn lighting(
@@ -84,7 +73,7 @@ pub fn lighting(
 }
 
 test "the default material" {
-    const m = material();
+    const m = Material{};
     try expectEqual(m.color, cnv.color(1, 1, 1));
     try expectEqual(m.ambient, 0.1);
     try expectEqual(m.diffuse, 0.9);
@@ -93,7 +82,7 @@ test "the default material" {
 }
 
 test "lighting with the eye between the light and the surface" {
-    const m = material();
+    const m = Material{};
     const position = tup.point(0, 0, 0);
     const eyev = tup.vector(0, 0, -1);
     const normalv = tup.vector(0, 0, -1);
@@ -104,7 +93,7 @@ test "lighting with the eye between the light and the surface" {
 }
 
 test "lighting with the eye between light and surface, eye offset 45 degrees" {
-    const m = material();
+    const m = Material{};
     const position = tup.point(0, 0, 0);
     const a = @sqrt(2.0) / 2.0;
     const eyev = tup.vector(0, a, -a);
@@ -116,7 +105,7 @@ test "lighting with the eye between light and surface, eye offset 45 degrees" {
 }
 
 test "lighting with eye opposite surface, light offset 45 degrees" {
-    const m = material();
+    const m = Material{};
     const position = tup.point(0, 0, 0);
     const eyev = tup.vector(0, 0, -1);
     const normalv = tup.vector(0, 0, -1);
@@ -127,7 +116,7 @@ test "lighting with eye opposite surface, light offset 45 degrees" {
 }
 
 test "lighting with eye in the path of the reflection vector" {
-    const m = material();
+    const m = Material{};
     const position = tup.point(0, 0, 0);
     const a = @sqrt(2.0) / 2.0;
     const eyev = tup.vector(0, -a, -a);
@@ -139,7 +128,7 @@ test "lighting with eye in the path of the reflection vector" {
 }
 
 test "lighting with the light behind the surface" {
-    const m = material();
+    const m = Material{};
     const position = tup.point(0, 0, 0);
     const eyev = tup.vector(0, 0, -1);
     const normalv = tup.vector(0, 0, -1);
@@ -150,7 +139,7 @@ test "lighting with the light behind the surface" {
 }
 
 test "lighting with the surface in a shadow" {
-    const m = material();
+    const m = Material{};
     const position = tup.point(0, 0, 0);
     const eye = tup.vector(0, 0, -1);
     const normal = tup.vector(0, 0, -1);
@@ -161,11 +150,12 @@ test "lighting with the surface in a shadow" {
 }
 
 test "lighting with a pattern applied" {
-    var m = material();
-    m.pattern = pat.StripePattern{ .a = cnv.color(1, 1, 1), .b = cnv.color(0, 0, 0) };
-    m.ambient = 1;
-    m.diffuse = 0;
-    m.specular = 0;
+    var m = Material{
+        .pattern = .{},
+        .ambient = 1,
+        .diffuse = 0,
+        .specular = 0,
+    };
 
     const eye = tup.vector(0, 0, -1);
     const normal = tup.vector(0, 0, -1);

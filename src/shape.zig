@@ -10,7 +10,7 @@ pub const ShapeType = enum {
 
 pub const Shape = struct {
     shape_type: ShapeType,
-    material: mtl.Material = mtl.material(),
+    material: mtl.Material = mtl.Material{},
     transform: mat.Matrix = mat.identity,
 };
 
@@ -29,13 +29,12 @@ test "assigning a transformation" {
 
 test "the default material" {
     var s = testShape();
-    try expectEqual(s.material, mtl.material());
+    try expectEqual(s.material, mtl.Material{});
 }
 
 test "assigning a material" {
     var s = testShape();
-    var m = mtl.material();
-    m.ambient = 1;
+    var m = mtl.Material{ .ambient = 1 };
     s.material = m;
     try expectEqual(s.material, m);
 }

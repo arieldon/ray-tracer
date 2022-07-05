@@ -261,14 +261,13 @@ test "computing the normal on a transformed sphere" {
 
 test "a sphere has a default material" {
     const s = sphere();
-    const m = mtl.material();
+    const m = mtl.Material{};
     try expectEqual(m, s.shape.material);
 }
 
 test "a sphere may be assigned a material" {
     var s = sphere();
-    var m = mtl.material();
-    m.ambient = 1;
+    var m = mtl.Material{ .ambient = 1 };
     s.shape.material = m;
     try expectEqual(m, s.shape.material);
 }

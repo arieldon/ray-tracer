@@ -20,10 +20,11 @@ pub fn main() !void {
     // Place a sphere on the plane.
     var sphere = rt.sph.sphere();
     sphere.shape.transform = rt.mat.translation(0, 1, 0.5);
-    sphere.shape.material = rt.mtl.material();
-    sphere.shape.material.color = rt.cnv.color(0.1, 0.75, 1);
-    sphere.shape.material.diffuse = 0.7;
-    sphere.shape.material.specular = 0.3;
+    sphere.shape.material = rt.mtl.Material{
+        .color = rt.cnv.color(0.1, 0.75, 1),
+        .diffuse = 0.7,
+        .specular = 0.3,
+    };
 
     // Allocate world to hold light source and items.
     var world = rt.wrd.world(allocator);
