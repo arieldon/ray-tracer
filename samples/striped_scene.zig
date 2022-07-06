@@ -13,9 +13,10 @@ pub fn main() !void {
     const orange = rt.cnv.Color{1, 0.5, 0.25};
 
     // Create the floor.
-    const pattern = rt.pat.StripePattern{
+    const pattern = rt.pat.Pattern{
         .a = orange,
         .b = blue,
+        .color_map = rt.pat.stripe,
     };
     const floor = rt.pln.Plane{
         .shape = rt.shp.Shape{
@@ -25,10 +26,11 @@ pub fn main() !void {
     };
 
     // Create a sphere with blue and orange stripes.
-    const rotated_pattern = rt.pat.StripePattern{
+    const rotated_pattern = rt.pat.Pattern{
         .a = blue,
         .b = orange,
         .transform = rt.mat.rotationZ(-std.math.pi / 4.0),
+        .color_map = rt.pat.stripe,
     };
     const sphere = rt.sph.Sphere{
         .shape = .{

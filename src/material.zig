@@ -10,7 +10,7 @@ const tup = @import("tuple.zig");
 
 pub const Material = struct {
     color: cnv.Color = cnv.color(1, 1, 1),
-    pattern: ?pat.StripePattern = null,
+    pattern: ?pat.Pattern = null,
     ambient: f32 = 0.1,     // Ambient reflection is background lighting.
     diffuse: f32 = 0.9,     // Diffuse reflection is light reflected from a matte surface.
     specular: f32 = 0.9,    // Specular reflection is the reflection of the light source itself.
@@ -30,7 +30,7 @@ pub fn lighting(
 
     var color: cnv.Color = undefined;
     if (material.pattern != null) {
-        color = material.pattern.?.stripeAtShape(shape, point);
+        color = material.pattern.?.atShape(shape, point);
     } else {
         color = material.color;
     }
@@ -160,11 +160,17 @@ test "lighting with the surface in a shadow" {
 }
 
 test "lighting with a pattern applied" {
+    const white = cnv.Color{1, 1, 1};
+    const black = cnv.Color{0, 0, 0};
     const sphere = sph.Sphere{
         .shape = .{
             .shape_type = .sphere,
             .material = .{
-                .pattern = .{},
+                .pattern = pat.Pattern{
+                    .a = white,
+                    .b = black,
+                    .color_map = pat.stripe,
+                },
                 .ambient = 1,
                 .diffuse = 0,
                 .specular = 0,
