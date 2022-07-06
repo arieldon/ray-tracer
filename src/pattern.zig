@@ -32,6 +32,22 @@ pub fn stripe(pattern: *const Pattern, point: tup.Point) cnv.Color {
     return if (@mod(@floor(point[0]), 2) == 0) pattern.a else pattern.b;
 }
 
+pub fn gradient(pattern: *const Pattern, point: tup.Point) cnv.Color {
+    const distance = pattern.b - pattern.a;
+    const fraction = point[0] - @floor(point[0]);
+    return pattern.a + distance * @splat(3, fraction);
+}
+
+pub fn ring(pattern: *const Pattern, point: tup.Point) cnv.Color {
+    const c = @floor(@sqrt(point[0] * point[0] + point[2] * point[2]));
+    return if (@mod(c, 2) == 0) pattern.a else pattern.b;
+}
+
+pub fn checker(pattern: *const Pattern, point: tup.Point) cnv.Color {
+    const c = @floor(point[0]) + @floor(point[1]) + @floor(point[2]);
+    return if (@mod(c, 2) == 0) pattern.a else pattern.b;
+}
+
 test "creating a stripe pattern" {
     const pattern = Pattern{ .a = white, .b = black, .color_map = stripe };
     try expectEqual(pattern.a, white);
@@ -104,4 +120,61 @@ test "stripes with both an object and a pattern transformation" {
 
     const c = pattern.atShape(sphere.shape, tup.point(2.5, 0, 0));
     try expectEqual(c, white);
+}
+
+test "a gradient linearly interpolates between colors" {
+    const pattern = Pattern{
+        .a = white,
+        .b = black,
+        .color_map = gradient,
+    };
+    try expectEqual(pattern.at(tup.point(0, 0, 0)), white);
+    try expectEqual(pattern.at(tup.point(0.25, 0, 0)), cnv.Color{0.75, 0.75, 0.75});
+    try expectEqual(pattern.at(tup.point(0.5, 0, 0)), cnv.Color{0.5, 0.5, 0.5});
+    try expectEqual(pattern.at(tup.point(0.75, 0, 0)), cnv.Color{0.25, 0.25, 0.25});
+}
+
+test "a ring should extend in both x and z" {
+    const pattern = Pattern{
+        .a = white,
+        .b = black,
+        .color_map = ring,
+    };
+    try expectEqual(pattern.at(tup.point(0, 0, 0)), white);
+    try expectEqual(pattern.at(tup.point(1, 0, 0)), black);
+    try expectEqual(pattern.at(tup.point(0, 0, 1)), black);
+    try expectEqual(pattern.at(tup.point(0.708, 0, 0.708)), black);
+}
+
+test "checkers should repeat in x" {
+    const pattern = Pattern{
+        .a = white,
+        .b = black,
+        .color_map = checker,
+    };
+    try expectEqual(pattern.at(tup.point(0, 0, 0)), white);
+    try expectEqual(pattern.at(tup.point(0.99, 0, 0)), white);
+    try expectEqual(pattern.at(tup.point(1.01, 0, 0)), black);
+}
+
+test "checkers should repeat in y" {
+    const pattern = Pattern{
+        .a = white,
+        .b = black,
+        .color_map = checker,
+    };
+    try expectEqual(pattern.at(tup.point(0, 0, 0)), white);
+    try expectEqual(pattern.at(tup.point(0, 0.99, 0)), white);
+    try expectEqual(pattern.at(tup.point(0, 1.01, 0)), black);
+}
+
+test "checkers should repeat in z" {
+    const pattern = Pattern{
+        .a = white,
+        .b = black,
+        .color_map = checker,
+    };
+    try expectEqual(pattern.at(tup.point(0, 0, 0)), white);
+    try expectEqual(pattern.at(tup.point(0, 0, 0.99)), white);
+    try expectEqual(pattern.at(tup.point(0, 0, 1.01)), black);
 }
