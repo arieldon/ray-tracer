@@ -34,11 +34,21 @@ pub fn intersect(ts: *std.ArrayList(int.Intersection), p: Plane, r: ray.Ray) !vo
 }
 
 pub fn normal_at(shape: shp.Shape, world_point: tup.Point) tup.Vector {
+    // The point in the world isn't necessary since the normal vector of a
+    // plane remains constant at all points.
     _ = world_point;
 
-    // Because a plane doesn't curve, it's surface normal vector remains
-    // constant at all points.
-    return mat.mul(mat.transpose(mat.inverse(shape.transform)), tup.vector(0, 1, 0));
+    // The surface normal vector of a plane remains constant at all points
+    // because a plane doesn't curve.
+    var n = mat.mul(mat.transpose(mat.inverse(shape.transform)), tup.vector(0, 1, 0));
+
+    // HACK: Reset w to 0 to accommodate translation transformations. It's more
+    // correct to multiply by the inverse transpose of the submatrix in the
+    // previous calculation, but this achieves the same result with fewer
+    // computations.
+    n[3] = 0;
+
+    return tup.normalize(n);
 }
 
 test "the normal of a plane is constant everywhere" {
