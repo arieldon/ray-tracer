@@ -49,6 +49,7 @@ pub const Computation = struct {
     over_point: tup.Point,
     eye: tup.Vector,
     normal: tup.Vector,
+    reflect: tup.Vector,
     inside: bool,
 };
 
@@ -78,6 +79,9 @@ pub fn prepareComputations(i: Intersection, r: ray.Ray) Computation {
     // above the surface of the shape, effectively preventing the grain from
     // self-shadowing.
     comps.over_point = comps.point + comps.normal * @splat(4, @as(f32, tup.epsilon));
+
+    // Precompute reflection vector.
+    comps.reflect = tup.reflect(r.direction, comps.normal);
 
     return comps;
 }
@@ -194,4 +198,22 @@ test "the hit should offset the point" {
 
     try expect(comps.over_point[2] < -tup.epsilon / 2.0);
     try expect(comps.point[2] > comps.over_point[2]);
+}
+
+test "precomputing the reflection vector" {
+    const a = @sqrt(2.0);
+    const b = a / 2.0;
+
+    const p = pln.plane();
+    const r = ray.Ray{
+        .origin = tup.point(0, 1, -1),
+        .direction = tup.vector(0, -b, b),
+    };
+    const i = Intersection{
+        .t = b,
+        .shape = p.shape,
+    };
+
+    const comps = prepareComputations(i, r);
+    try expectEqual(comps.reflect, tup.vector(0, b, b));
 }

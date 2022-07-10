@@ -67,7 +67,7 @@ pub fn render(allocator: std.mem.Allocator, c: Camera, w: wrd.World) !cnv.Canvas
         var x: u32 = 0;
         while (x < c.horizontal_size) : (x += 1) {
             const r = rayForPixel(c, x, y);
-            const color = try wrd.colorAt(w, r);
+            const color = wrd.colorAt(w, r);
             image.writePixel(x, y, color);
         }
     }

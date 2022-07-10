@@ -15,6 +15,7 @@ pub const Material = struct {
     diffuse: f32 = 0.9,     // Diffuse reflection is light reflected from a matte surface.
     specular: f32 = 0.9,    // Specular reflection is the reflection of the light source itself.
     shininess: f32 = 200.0, // Parameter for size of specular highlight: the bright spot on curved surface.
+    reflective: f32 = 0.0,  // 0 defines a nonreflective material and 1 creates a perfect mirror.
 };
 
 // Use the Phong reflection model.

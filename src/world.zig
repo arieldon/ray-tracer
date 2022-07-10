@@ -11,6 +11,10 @@ const ray = @import("ray.zig");
 const sph = @import("sphere.zig");
 const tup = @import("tuple.zig");
 
+// Set limit for number of recursive calls allowed to calculate color of
+// reflection.
+const default_remaining: usize = 5;
+
 pub const World = struct {
     // FIXME Require a light for the scene. A scene without light isn't
     // particularly useful, and marking the light as optional forces
@@ -74,40 +78,52 @@ pub inline fn defaultWorld(allocator: std.mem.Allocator) !World {
     return World.defaultInit(allocator);
 }
 
-pub fn intersectWorld(xs: *std.ArrayList(int.Intersection), w: World, r: ray.Ray) !void {
+pub fn intersectWorld(xs: *std.ArrayList(int.Intersection), w: World, r: ray.Ray) void {
     // Cast a ray through each object in the world and append any intersections
     // to the list.
-    for (w.spheres.items) |sphere| try sph.intersect(xs, sphere, r);
-    for (w.planes.items)  |plane|  try pln.intersect(xs, plane, r);
+
+    // FIXME Handle OutOfMemory errors gracefully.
+    for (w.spheres.items) |sphere| sph.intersect(xs, sphere, r) catch unreachable;
+    for (w.planes.items)  |plane|  pln.intersect(xs, plane, r) catch unreachable;
 
     // Call hit() only to sort the intersections.
     _ = int.hit(xs);
 }
 
-pub fn shadeHit(w: World, comps: int.Computation) !cnv.Color {
-    const shadowed = try isShadowed(w, comps.over_point);
-    return mtl.lighting(
+pub fn shadeHit(w: World, comps: int.Computation) cnv.Color {
+    return shadeHitInternal(w, comps, default_remaining);
+}
+
+fn shadeHitInternal(w: World, comps: int.Computation, remaining: usize) cnv.Color {
+    const shadowed = isShadowed(w, comps.over_point);
+    const surface = mtl.lighting(
         comps.shape,
         w.light.?,
         comps.over_point,
         comps.eye,
         comps.normal,
         shadowed);
+    const reflected = reflectedColorInternal(w, comps, remaining);
+    return surface + reflected;
 }
 
-pub fn colorAt(w: World, r: ray.Ray) !cnv.Color {
+pub fn colorAt(w: World, r: ray.Ray) cnv.Color {
+    return colorAtInternal(w, r, default_remaining);
+}
+
+fn colorAtInternal(w: World, r: ray.Ray, remaining: usize) cnv.Color {
     var intersections = std.ArrayList(int.Intersection).init(w.allocator);
     defer intersections.deinit();
 
-    try intersectWorld(&intersections, w, r);
+    intersectWorld(&intersections, w, r);
     if (int.hit(&intersections)) |hit| {
         const comps = int.prepareComputations(hit, r);
-        return shadeHit(w, comps);
+        return shadeHitInternal(w, comps, remaining);
     }
     return cnv.color(0, 0, 0);
 }
 
-pub fn isShadowed(w: World, p: tup.Point) !bool {
+pub fn isShadowed(w: World, p: tup.Point) bool {
     // Mesasure distance from point to light source and calculate magnitude of
     // resulting vector.
     const v = w.light.?.position - p;
@@ -121,13 +137,35 @@ pub fn isShadowed(w: World, p: tup.Point) !bool {
     var intersections = std.ArrayList(int.Intersection).init(w.allocator);
     defer intersections.deinit();
 
-    try intersectWorld(&intersections, w, shadow_ray);
+    intersectWorld(&intersections, w, shadow_ray);
 
     // Again, if the shadow ray intersects an object at some point in the
     // distance between the light source and the point, then the object lies
     // within a shadow.
     if (int.hit(&intersections)) |hit| return hit.t < distance;
     return false;
+}
+
+pub fn reflectedColor(w: World, comps: int.Computation) cnv.Color {
+    return reflectedColorInternal(w, comps, default_remaining);
+}
+
+fn reflectedColorInternal(w: World, comps: int.Computation, remaining: usize) cnv.Color {
+    const black = cnv.Color{0, 0, 0};
+
+    // Limit recursion to accomdate rays that bounce between parallel mirrors.
+    if (remaining == 0) return black;
+
+    // In this case, the ray intersects a nonreflective surface.
+    if (comps.shape.material.reflective == 0) return black;
+
+    const reflect_ray = ray.Ray{
+        .origin = comps.over_point,
+        .direction = comps.reflect,
+    };
+    const color = colorAtInternal(w, reflect_ray, remaining - 1);
+
+    return color * @splat(3, comps.shape.material.reflective);
 }
 
 test "creating a world" {
@@ -168,7 +206,7 @@ test "intersect a world with a ray" {
     var xs = std.ArrayList(int.Intersection).init(std.testing.allocator);
     defer xs.deinit();
 
-    try intersectWorld(&xs, w, r);
+    intersectWorld(&xs, w, r);
     try expectEqual(xs.items.len, 4);
     try expectEqual(xs.items[0].t, 4);
     try expectEqual(xs.items[1].t, 4.5);
@@ -185,7 +223,7 @@ test "shading an intersection" {
     const i = int.intersection(4, s.shape);
 
     const comps = int.prepareComputations(i, r);
-    const c = try shadeHit(w, comps);
+    const c = shadeHit(w, comps);
 
     try expect(cnv.equal(c, cnv.color(0.38066, 0.47583, 0.2855)));
 }
@@ -200,7 +238,7 @@ test "shading an intersection from the inside" {
     const i = int.intersection(0.5, s.shape);
 
     const comps = int.prepareComputations(i, r);
-    const c = try shadeHit(w, comps);
+    const c = shadeHit(w, comps);
 
     try expect(cnv.equal(c, cnv.color(0.90498, 0.90498, 0.90498)));
 }
@@ -210,7 +248,7 @@ test "the color when a ray misses" {
     defer w.deinit();
 
     const r = ray.ray(tup.point(0, 0, -5), tup.vector(0, 1, 0));
-    const c = try colorAt(w, r);
+    const c = colorAt(w, r);
 
     try expectEqual(c, cnv.color(0, 0, 0));
 }
@@ -220,7 +258,7 @@ test "the color when a ray hits" {
     defer w.deinit();
 
     const r = ray.ray(tup.point(0, 0, -5), tup.vector(0, 0, 1));
-    const c = try colorAt(w, r);
+    const c = colorAt(w, r);
 
     try expect(cnv.equal(c, cnv.color(0.38066, 0.47583, 0.2855)));
 }
@@ -236,7 +274,7 @@ test "the color with an intersection behind the ray" {
     inner.shape.material.ambient = 1;
 
     const r = ray.ray(tup.point(0, 0, 0.75), tup.vector(0, 0, -1));
-    const c = try colorAt(w, r);
+    const c = colorAt(w, r);
 
     try expectEqual(c, inner.shape.material.color);
 }
@@ -246,7 +284,7 @@ test "there is no shadow when nothing is collinear with point and light" {
     defer w.deinit();
 
     const p = tup.point(0, 10, 0);
-    try expect(!try isShadowed(w, p));
+    try expect(!isShadowed(w, p));
 }
 
 test "the shadow when an object is between the point and the light" {
@@ -254,7 +292,7 @@ test "the shadow when an object is between the point and the light" {
     defer w.deinit();
 
     const p = tup.point(10, -10, 10);
-    try expect(try isShadowed(w, p));
+    try expect(isShadowed(w, p));
 }
 
 test "there is no shadow when an object is behind the light" {
@@ -262,7 +300,7 @@ test "there is no shadow when an object is behind the light" {
     defer w.deinit();
 
     const p = tup.point(-20, 20, -20);
-    try expect(!try isShadowed(w, p));
+    try expect(!isShadowed(w, p));
 }
 
 test "there is no shadow when an object is behind the point" {
@@ -270,7 +308,7 @@ test "there is no shadow when an object is behind the point" {
     defer w.deinit();
 
     const p = tup.point(-2, 2, -2);
-    try expect(!try isShadowed(w, p));
+    try expect(!isShadowed(w, p));
 }
 
 test "shadeHit() is given an intersection in shadow" {
@@ -289,6 +327,146 @@ test "shadeHit() is given an intersection in shadow" {
     const i = int.intersection(4, s2.shape);
 
     const comps = int.prepareComputations(i, r);
-    const c = try shadeHit(w, comps);
+    const c = shadeHit(w, comps);
     try expectEqual(c, cnv.color(0.1, 0.1, 0.1));
+}
+
+test "the reflected color for a nonreflective material" {
+    var w = try defaultWorld(std.testing.allocator);
+    defer w.deinit();
+
+    const r = ray.Ray{
+        .origin = tup.point(0, 0, 0),
+        .direction = tup.vector(0, 0, 1),
+    };
+
+    var sphere = &w.spheres.items[1];
+    sphere.shape.material.ambient = 1;
+
+    const i = int.Intersection{.t = 1, .shape = sphere.shape};
+    const comps = int.prepareComputations(i, r);
+
+    const color = reflectedColor(w, comps);
+    try expectEqual(color, cnv.Color{0, 0, 0});
+}
+
+test "the reflected color for a reflective material" {
+    const a = @sqrt(2.0);
+    const b = a / 2.0;
+
+    var w = try defaultWorld(std.testing.allocator);
+    defer w.deinit();
+
+    const plane = pln.Plane{
+        .shape = .{
+            .shape_type = .plane,
+            .material = .{ .reflective = 0.5 },
+            .transform = mat.translation(0, -1, 0),
+        }
+    };
+    try w.planes.append(plane);
+
+    const r = ray.Ray{
+        .origin = tup.point(0, 0, -3),
+        .direction = tup.vector(0, -b, b),
+    };
+    const i = int.Intersection{.t = a, .shape = plane.shape};
+
+
+    const comps = int.prepareComputations(i, r);
+    const color = reflectedColor(w, comps);
+    try expect(cnv.equal(color, cnv.Color{0.19032, 0.2379, 0.14274}));
+}
+
+test "shadeHit() with a reflective material" {
+    const a = @sqrt(2.0);
+    const b = a / 2.0;
+
+    var w = try defaultWorld(std.testing.allocator);
+    defer w.deinit();
+
+    const plane = pln.Plane{
+        .shape = .{
+            .shape_type = .plane,
+            .material = .{ .reflective = 0.5 },
+            .transform = mat.translation(0, -1, 0),
+        }
+    };
+    try w.planes.append(plane);
+
+    const r = ray.Ray{
+        .origin = tup.point(0, 0, -3),
+        .direction = tup.vector(0, -b, b),
+    };
+    const i = int.Intersection{.t = a, .shape = plane.shape};
+
+    const comps = int.prepareComputations(i, r);
+    const color = shadeHit(w, comps);
+    try expect(cnv.equal(color, cnv.Color{0.87677, 0.92436, 0.82918}));
+}
+
+test "colorAt() with mutually reflective surfaces" {
+    var w = world(std.testing.allocator);
+    defer w.deinit();
+
+    w.light = lht.PointLight{
+        .position = tup.point(0, 0, 0),
+        .intensity = cnv.Color{1, 1, 1},
+    };
+
+    const lower = pln.Plane{
+        .shape = .{
+            .shape_type = .plane,
+            .material = .{ .reflective = 1 },
+            .transform = mat.translation(0, -1, 0),
+        },
+    };
+    try w.planes.append(lower);
+
+    const upper = pln.Plane{
+        .shape = .{
+            .shape_type = .plane,
+            .material = .{ .reflective = 1 },
+            .transform = mat.translation(0, 1, 0),
+        },
+    };
+    try w.planes.append(upper);
+
+    const r = ray.Ray{
+        .origin = tup.point(0, 0, 0),
+        .direction = tup.vector(0, 1, 0),
+    };
+
+    // As long as this terminates, consider the test passed.
+    _ = colorAt(w, r);
+}
+
+test "the reflected color at the maximum recursive depth" {
+    const a = @sqrt(2.0);
+    const b = a / 2.0;
+
+    var w = try defaultWorld(std.testing.allocator);
+    defer w.deinit();
+
+    const plane = pln.Plane{
+        .shape = .{
+            .shape_type = .plane,
+            .material = .{ .reflective = 0.5 },
+            .transform = mat.translation(0, -1, 0),
+        },
+    };
+    try w.planes.append(plane);
+
+    const r = ray.Ray{
+        .origin = tup.point(0, 0, -3),
+        .direction = tup.vector(0, -b, b),
+    };
+    const i = int.Intersection{
+        .t = a,
+        .shape = plane.shape,
+    };
+
+    const comps = int.prepareComputations(i, r);
+    const color = reflectedColorInternal(w, comps, 0);
+    try expect(cnv.equal(color, cnv.Color{0, 0, 0}));
 }
