@@ -17,6 +17,7 @@ pub fn build(b: *std.build.Builder) void {
         .{ .bin_name = "sphere-world", .source_path = "samples/sphere_world.zig" },
         .{ .bin_name = "sphere-on-plane", .source_path = "samples/sphere_on_plane.zig" },
         .{ .bin_name = "striped-scene", .source_path = "samples/striped_scene.zig" },
+        .{ .bin_name = "reflective-floor", .source_path = "samples/reflective_floor.zig" },
     }) |sample| {
         // Construct the sample.
         const exe = b.addExecutable(sample.bin_name, sample.source_path);
