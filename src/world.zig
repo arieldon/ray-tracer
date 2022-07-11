@@ -164,7 +164,7 @@ pub fn reflectedColor(w: World, comps: int.Computation) cnv.Color {
 fn reflectedColorInternal(w: World, comps: int.Computation, remaining: usize) cnv.Color {
     const black = cnv.Color{0, 0, 0};
 
-    // Limit recursion to accomdate rays that bounce between parallel mirrors.
+    // Limit recursion to handle rays that bounce between parallel mirrors.
     if (remaining == 0) return black;
 
     // In this case, the ray intersects a nonreflective surface.
