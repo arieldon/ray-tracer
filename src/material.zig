@@ -11,11 +11,31 @@ const tup = @import("tuple.zig");
 pub const Material = struct {
     color: cnv.Color = cnv.color(1, 1, 1),
     pattern: ?pat.Pattern = null,
-    ambient: f32 = 0.1,     // Ambient reflection is background lighting.
-    diffuse: f32 = 0.9,     // Diffuse reflection is light reflected from a matte surface.
-    specular: f32 = 0.9,    // Specular reflection is the reflection of the light source itself.
-    shininess: f32 = 200.0, // Parameter for size of specular highlight: the bright spot on curved surface.
-    reflective: f32 = 0.0,  // 0 defines a nonreflective material and 1 creates a perfect mirror.
+
+    // Ambient reflection is background lighting.
+    ambient: f32 = 0.1,
+
+    // Diffuse reflection is light reflected from a matte surface.
+    diffuse: f32 = 0.9,
+
+    // Specular reflection is the reflection of the light source itself.
+    specular: f32 = 0.9,
+
+    // Parameter for size of specular highlight: the bright spot on curved surface.
+    shininess: f32 = 200.0,
+
+    // 0 defines a nonreflective material and 1 creates a perfect mirror.
+    reflective: f32 = 0.0,
+
+    // Determine degree light bends when entering or exiting this material. As
+    // this parameter increases, the angle at which light bends when it
+    // intersects this material also increases. The refractive index of a
+    // vacuum is 1.
+    refractive_index: f32 = 1.0,
+
+    // Control the transparency of the material. 0 defines an opaque material
+    // and 1 defines a perfectly transparent material.
+    transparency: f32 = 0.0,
 };
 
 // Use the Phong reflection model.

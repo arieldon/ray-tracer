@@ -6,6 +6,7 @@ const int = @import("intersection.zig");
 const lht = @import("light.zig");
 const mat = @import("matrix.zig");
 const mtl = @import("material.zig");
+const pat = @import("pattern.zig");
 const pln = @import("plane.zig");
 const ray = @import("ray.zig");
 const sph = @import("sphere.zig");
@@ -103,8 +104,18 @@ fn shadeHitInternal(w: World, comps: int.Computation, remaining: usize) cnv.Colo
         comps.eye,
         comps.normal,
         shadowed);
+
     const reflected = reflectedColorInternal(w, comps, remaining);
-    return surface + reflected;
+    const refracted = refractedColorInternal(w, comps, remaining);
+
+    const material = comps.shape.material;
+    if (material.reflective > 0 and material.transparency > 0) {
+        const one = @splat(3, @as(f32, 1.0));
+        const reflectance = @splat(3, int.schlick(comps));
+        return surface + reflected * reflectance + refracted * (one - reflectance);
+    }
+
+    return surface + reflected + refracted;
 }
 
 pub fn colorAt(w: World, r: ray.Ray) cnv.Color {
@@ -117,7 +128,7 @@ fn colorAtInternal(w: World, r: ray.Ray, remaining: usize) cnv.Color {
 
     intersectWorld(&intersections, w, r);
     if (int.hit(intersections.items)) |hit| {
-        const comps = int.prepareComputations(hit, r);
+        const comps = int.prepareComputationsForRefraction(hit, r, intersections.items);
         return shadeHitInternal(w, comps, remaining);
     }
     return cnv.color(0, 0, 0);
@@ -166,6 +177,34 @@ fn reflectedColorInternal(w: World, comps: int.Computation, remaining: usize) cn
     const color = colorAtInternal(w, reflect_ray, remaining - 1);
 
     return color * @splat(3, comps.shape.material.reflective);
+}
+
+pub fn refractedColor(w: World, comps: int.Computation) cnv.Color {
+    return refractedColorInternal(w, comps, default_remaining);
+}
+
+fn refractedColorInternal(w: World, comps: int.Computation, remaining: usize) cnv.Color {
+    const black = cnv.Color{0, 0, 0};
+    if (remaining == 0) return black;
+    if (comps.shape.material.transparency == 0) return black;
+
+    // TODO Explain these steps.
+    const n_ratio = comps.n1 / comps.n2;
+    const cos_i = tup.dot(comps.eye, comps.normal);
+    const sin2_t = (n_ratio * n_ratio) * (1 - cos_i * cos_i);
+
+    // TODO Explain total internal reflection.
+    if (sin2_t > 1) return black;
+
+    const cos_t = @sqrt(1.0 - sin2_t);
+    const direction = comps.normal * @splat(4, n_ratio * cos_i - cos_t) - comps.eye * @splat(4, n_ratio);
+    const refract_ray = ray.Ray{
+        .origin = comps.under_point,
+        .direction = direction,
+    };
+
+    const color = colorAtInternal(w, refract_ray, remaining - 1);
+    return color * @splat(3, comps.shape.material.transparency);
 }
 
 test "creating a world" {
@@ -469,4 +508,184 @@ test "the reflected color at the maximum recursive depth" {
     const comps = int.prepareComputations(i, r);
     const color = reflectedColorInternal(w, comps, 0);
     try expect(cnv.equal(color, cnv.Color{0, 0, 0}));
+}
+
+test "the refracted color with an opaque surface" {
+    var w = try defaultWorld(std.testing.allocator);
+    defer w.deinit();
+
+    const sphere = &w.spheres.items[0];
+    const r = ray.Ray{
+        .origin = tup.point(0, 0, -5),
+        .direction = tup.vector(0, 0, 1),
+    };
+    const xs = &[_]int.Intersection{
+        .{ .t = 4, .shape = sphere.shape },
+        .{ .t = 6, .shape = sphere.shape },
+    };
+    const comps = int.prepareComputationsForRefraction(xs[0], r, xs);
+
+    const c = refractedColor(w, comps);
+    try expectEqual(c, cnv.Color{0, 0, 0});
+}
+
+test "the refactor color at the maximum recursive depth" {
+    var w = try defaultWorld(std.testing.allocator);
+    defer w.deinit();
+
+    const sphere = &w.spheres.items[0];
+    sphere.shape.material.transparency = 1.0;
+    sphere.shape.material.refractive_index = 1.5;
+    const r = ray.Ray{
+        .origin = tup.point(0, 0, -5),
+        .direction = tup.vector(0, 0, 1),
+    };
+    const xs = &[_]int.Intersection{
+        .{ .t = 4, .shape = sphere.shape },
+        .{ .t = 6, .shape = sphere.shape },
+    };
+    const comps = int.prepareComputationsForRefraction(xs[0], r, xs);
+
+    const c = refractedColorInternal(w, comps, 0);
+    try expectEqual(c, cnv.Color{0, 0, 0});
+}
+
+test "the refracted color under total internal reflection" {
+    const a = @sqrt(2.0);
+    const b = a / 2.0;
+
+    var w = try defaultWorld(std.testing.allocator);
+    defer w.deinit();
+
+    const sphere = &w.spheres.items[0];
+    sphere.shape.material.transparency = 1.0;
+    sphere.shape.material.refractive_index = 1.5;
+    const r = ray.Ray{
+        .origin = tup.point(0, 0, b),
+        .direction = tup.vector(0, 1, 0),
+    };
+    const xs = &[_]int.Intersection{
+        .{ .t = -b, .shape = sphere.shape },
+        .{ .t = b, .shape = sphere.shape },
+    };
+    const comps = int.prepareComputationsForRefraction(xs[1], r, xs);
+
+    const c = refractedColor(w, comps);
+    try expectEqual(c, cnv.Color{0, 0, 0});
+}
+
+test "the refracted color with a refracted ray" {
+    var w = try defaultWorld(std.testing.allocator);
+    defer w.deinit();
+
+    const a = &w.spheres.items[0];
+    a.shape.material.ambient = 1.0;
+    a.shape.material.pattern = .{
+        .a = cnv.Color{1, 1, 1},
+        .b = cnv.Color{0, 0, 0},
+        .color_map = pat.testPattern,
+    };
+
+    const b = &w.spheres.items[1];
+    b.shape.material.transparency = 1.0;
+    b.shape.material.refractive_index = 1.5;
+
+    const r = ray.Ray{
+        .origin = tup.point(0, 0, 0.1),
+        .direction = tup.vector(0, 1, 0),
+    };
+    const xs = &[_]int.Intersection{
+        .{ .t = -0.9899, .shape = a.shape },
+        .{ .t = -0.4899, .shape = b.shape },
+        .{ .t =  0.4899, .shape = b.shape },
+        .{ .t =  0.9899, .shape = a.shape },
+    };
+    const comps = int.prepareComputationsForRefraction(xs[2], r, xs);
+
+    const c = refractedColor(w, comps);
+    try expect(cnv.equal(c, cnv.Color{0, 0.99888, 0.04725}));
+}
+
+test "shadeHit() with a transparent material" {
+    const a = @sqrt(2.0);
+    const b = a / 2.0;
+
+    var w = try defaultWorld(std.testing.allocator);
+    defer w.deinit();
+
+    const floor = pln.Plane{
+        .shape = .{
+            .shape_type = .plane,
+            .material = .{
+                .transparency = 0.5,
+                .refractive_index = 1.5,
+            },
+            .transform = mat.translation(0, -1, 0),
+        },
+    };
+    const ball = sph.Sphere{
+        .shape = .{
+            .shape_type = .sphere,
+            .material = .{
+                .color = cnv.Color{1, 0, 0},
+                .ambient = 0.5
+            },
+            .transform = mat.translation(0, -3.5, -0.5),
+        },
+    };
+    const r = ray.Ray{
+        .origin = tup.point(0, 0, -3),
+        .direction = tup.vector(0, -b, b),
+    };
+    const xs = &[_]int.Intersection{ .{ .t = a, .shape = floor.shape } };
+    const comps = int.prepareComputationsForRefraction(xs[0], r, xs);
+
+    try w.planes.append(floor);
+    try w.spheres.append(ball);
+
+    const color = shadeHit(w, comps);
+    try expect(cnv.equal(color, cnv.Color{0.93642, 0.68642, 0.68642}));
+}
+
+test "shadeHit() with a reflective, transparent material" {
+    const a = @sqrt(2.0);
+    const b = a / 2.0;
+
+    var w = try defaultWorld(std.testing.allocator);
+    defer w.deinit();
+
+    const r = ray.Ray{
+        .origin = tup.point(0, 0, -3),
+        .direction = tup.vector(0, -b, b),
+    };
+    const floor = pln.Plane{
+        .shape = .{
+            .shape_type = .plane,
+            .transform = mat.translation(0, -1, 0),
+            .material = .{
+                .reflective = 0.5,
+                .transparency = 0.5,
+                .refractive_index = 1.5,
+            },
+        },
+    };
+    const ball = sph.Sphere{
+        .shape = .{
+            .shape_type = .sphere,
+            .transform = mat.translation(0, -3.5, -0.5),
+            .material = .{
+                .color = cnv.Color{1, 0, 0},
+                .ambient = 0.5,
+            },
+        },
+    };
+
+    try w.planes.append(floor);
+    try w.spheres.append(ball);
+
+    const xs = &[_]int.Intersection{ .{ .t = a, .shape = floor.shape } };
+    const comps = int.prepareComputationsForRefraction(xs[0], r, xs);
+
+    const color = shadeHit(w, comps);
+    try expect(cnv.equal(color, cnv.Color{0.93391, 0.69643, 0.69243}));
 }
