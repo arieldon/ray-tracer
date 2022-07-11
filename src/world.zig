@@ -87,7 +87,7 @@ pub fn intersectWorld(xs: *std.ArrayList(int.Intersection), w: World, r: ray.Ray
     for (w.planes.items)  |plane|  pln.intersect(xs, plane, r) catch unreachable;
 
     // Call hit() only to sort the intersections.
-    _ = int.hit(xs);
+    _ = int.hit(xs.items);
 }
 
 pub fn shadeHit(w: World, comps: int.Computation) cnv.Color {
@@ -116,7 +116,7 @@ fn colorAtInternal(w: World, r: ray.Ray, remaining: usize) cnv.Color {
     defer intersections.deinit();
 
     intersectWorld(&intersections, w, r);
-    if (int.hit(&intersections)) |hit| {
+    if (int.hit(intersections.items)) |hit| {
         const comps = int.prepareComputations(hit, r);
         return shadeHitInternal(w, comps, remaining);
     }
@@ -142,7 +142,7 @@ pub fn isShadowed(w: World, p: tup.Point) bool {
     // Again, if the shadow ray intersects an object at some point in the
     // distance between the light source and the point, then the object lies
     // within a shadow.
-    if (int.hit(&intersections)) |hit| return hit.t < distance;
+    if (int.hit(intersections.items)) |hit| return hit.t < distance;
     return false;
 }
 

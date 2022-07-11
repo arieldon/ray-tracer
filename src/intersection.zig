@@ -18,20 +18,16 @@ pub inline fn intersections(xs: *std.ArrayList(Intersection), new: []Intersectio
     try xs.appendSlice(new);
 }
 
-pub fn hit(xs: *std.ArrayList(Intersection)) ?Intersection {
+pub fn hit(xs: []Intersection) ?Intersection {
     const static = struct {
         fn cmp(context: void, a: Intersection, b: Intersection) bool {
             _ = context;
             return a.t < b.t;
         }
     };
-    std.sort.sort(Intersection, xs.items, {}, comptime static.cmp);
+    std.sort.sort(Intersection, xs, {}, comptime static.cmp);
 
-    for (xs.items) |x| {
-        if (x.t >= 0) {
-            return x;
-        }
-    }
+    for (xs) |x| if (x.t >= 0) return x;
     return null;
 }
 
@@ -107,7 +103,7 @@ test "the hit, when all intersections have positive t" {
     defer xs.deinit();
 
     try intersections(&xs, &[_]Intersection{ int1, int2 });
-    const int = hit(&xs);
+    const int = hit(xs.items);
     try expectEqual(int, int1);
 }
 
@@ -119,7 +115,7 @@ test "the hit, when some intersections have negative t" {
     defer xs.deinit();
 
     try intersections(&xs, &[_]Intersection{ int1, int2 });
-    const int = hit(&xs);
+    const int = hit(xs.items);
     try expectEqual(int, int2);
 }
 
@@ -131,7 +127,7 @@ test "the hit, when all intersections have negative t" {
     defer xs.deinit();
 
     try intersections(&xs, &[_]Intersection{ int1, int2 });
-    const int = hit(&xs);
+    const int = hit(xs.items);
     try expectEqual(int, null);
 }
 
@@ -145,7 +141,7 @@ test "the hit is always the lowest nonnegative intersection" {
     defer xs.deinit();
 
     try intersections(&xs, &[_]Intersection{ int1, int2, int3, int4 });
-    const int = hit(&xs);
+    const int = hit(xs.items);
     try expectEqual(int, int4);
 }
 
