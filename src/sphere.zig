@@ -64,8 +64,8 @@ pub fn intersect(ts: *std.ArrayList(int.Intersection), s: Sphere, r: ray.Ray) !v
         // will be unique. When the ray is tangent to the sphere and it
         // intersects at one point, both t values will be the same. In this
         // latter case, the discriminant is zero.
-        var t1 = int.intersection((-b - @sqrt(discriminant)) / (2 * a), s.shape);
-        var t2 = int.intersection((-b + @sqrt(discriminant)) / (2 * a), s.shape);
+        var t1 = int.Intersection{ .t = (-b - @sqrt(discriminant)) / (2 * a), .shape = s.shape };
+        var t2 = int.Intersection{ .t = (-b + @sqrt(discriminant)) / (2 * a), .shape = s.shape };
         try ts.appendSlice(&[_]int.Intersection{ t1, t2 });
     }
 }

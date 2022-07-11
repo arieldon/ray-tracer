@@ -30,7 +30,7 @@ pub fn intersect(ts: *std.ArrayList(int.Intersection), p: Plane, r: ray.Ray) !vo
 
     // Compute the intersection of the transformed ray with the plane.
     const t = -r_prime.origin[1] / r_prime.direction[1];
-    try ts.append(int.intersection(t, p.shape));
+    try ts.append(int.Intersection{ .t = t, .shape = p.shape });
 }
 
 pub fn normal_at(shape: shp.Shape, world_point: tup.Point) tup.Vector {

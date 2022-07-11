@@ -220,7 +220,7 @@ test "shading an intersection" {
 
     const r = ray.ray(tup.point(0, 0, -5), tup.vector(0, 0, 1));
     const s = w.spheres.items[0];
-    const i = int.intersection(4, s.shape);
+    const i = int.Intersection{ .t = 4, .shape = s.shape };
 
     const comps = int.prepareComputations(i, r);
     const c = shadeHit(w, comps);
@@ -235,7 +235,7 @@ test "shading an intersection from the inside" {
 
     const r = ray.ray(tup.point(0, 0, 0), tup.vector(0, 0, 1));
     const s = w.spheres.items[1];
-    const i = int.intersection(0.5, s.shape);
+    const i = int.Intersection{ .t = 0.5, .shape = s.shape };
 
     const comps = int.prepareComputations(i, r);
     const c = shadeHit(w, comps);
@@ -324,7 +324,7 @@ test "shadeHit() is given an intersection in shadow" {
     try w.spheres.append(s2);
 
     const r = ray.ray(tup.point(0, 0, 5), tup.vector(0, 0, 1));
-    const i = int.intersection(4, s2.shape);
+    const i = int.Intersection{ .t = 4, .shape = s2.shape };
 
     const comps = int.prepareComputations(i, r);
     const c = shadeHit(w, comps);
