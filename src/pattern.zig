@@ -28,6 +28,11 @@ pub const Pattern = struct {
     }
 };
 
+pub fn testPattern(pattern: *const Pattern, point: tup.Point) cnv.Color {
+    const transformed_point = mat.mul(pattern.transform, point);
+    return cnv.Color{transformed_point[0], transformed_point[1], transformed_point[2]};
+}
+
 pub fn stripe(pattern: *const Pattern, point: tup.Point) cnv.Color {
     return if (@mod(@floor(point[0]), 2) == 0) pattern.a else pattern.b;
 }
