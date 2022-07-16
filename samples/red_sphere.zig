@@ -33,7 +33,7 @@ pub fn main() !void {
             // Calculate ray-sphere intersections and paint hits red. Points
             // where no intersection occurs remain their default black.
             try rt.sph.intersect(&intersections, sphere, r);
-            if (rt.int.hit(&intersections) != null) canvas.writePixel(x, y, color);
+            if (rt.int.hit(intersections.items) != null) canvas.writePixel(x, y, color);
 
             // Reset list.
             intersections.items.len = 0;
