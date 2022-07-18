@@ -55,9 +55,25 @@ pub fn normalize(v: Vector) Vector {
     return v / @splat(4, @as(f32, magnitude(v)));
 }
 
-pub fn reflect(in: Vector, normal: Vector) Vector {
+pub fn reflect(incident: Vector, normal: Vector) Vector {
     // Reflect the incoming vector across the surface normal vector provided.
-    return in - normal * @splat(4, dot(in, normal)) * @splat(4, @as(f32, 2.0));
+    // To do so, break the incident vector into vector components A and B along
+    // the plane of incidence -- the incident vector, the normal vector, and
+    // the reflected vector lie in the same plane. Note, A is parallel and B is
+    // orthogonal to the surface.
+    //      R <- A - B <- incident - 2B
+    //      A <- incident - B
+    //      B <- cos(theta) * normal
+
+    // Compute B by projecting incident vector onto normal vector. This dot
+    // product yields the cosine of the angle between the two vectors, assuming
+    // the incident vector is normalized.
+    const orthogonal_component = @splat(4, dot(incident, normal)) * normal;
+
+    // Calculate the direction of the reflected ray. Assuming a normalized
+    // incident vector (as mentioned in the previous comment) this computation
+    // also yields a normalized vector.
+    return incident - @splat(4, @as(f32, 2.0)) * orthogonal_component;
 }
 
 test "a tuple with w=1.0 is a point" {

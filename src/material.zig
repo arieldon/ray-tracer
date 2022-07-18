@@ -30,7 +30,8 @@ pub const Material = struct {
     // Determine degree light bends when entering or exiting this material. As
     // this parameter increases, the angle at which light bends when it
     // intersects this material also increases. The refractive index of a
-    // vacuum is 1.
+    // vacuum is 1. In physics, it is defined as the ratio between the speed of
+    // light in a vacuum (c) and the speed of light in the given material (v).
     refractive_index: f32 = 1.0,
 
     // Control the transparency of the material. 0 defines an opaque material

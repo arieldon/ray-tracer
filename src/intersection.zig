@@ -140,21 +140,24 @@ pub fn prepareComputationsForRefraction(i: Intersection, r: ray.Ray, xs: []Inter
 }
 
 pub fn schlick(comps: Computation) f32 {
-    var cos = tup.dot(comps.eye, comps.normal);
+    // Schlick's approximation serves as an approximation for the Fresnel
+    // equation, which determines the amounts of light reflected and refracted
+    // at an intersection.
+    var r0 = (comps.n1 - comps.n2) / (comps.n1 + comps.n2);
+    r0 *= r0;
 
+    var cos = tup.dot(comps.eye, comps.normal);
     if (comps.n1 > comps.n2) {
         const n = comps.n1 / comps.n2;
-        const sin2_t = (n * n) * (1.0 - (cos * cos));
+        const sin2_t = n * n * (1.0 - cos * cos);
 
+        // Total internal reflection occurs in this case.
         if (sin2_t > 1.0) return 1.0;
 
-        const cos_t = @sqrt(1.0 - sin2_t);
-        cos = cos_t;
+        cos = @sqrt(1.0 - sin2_t);
     }
 
-    const r0 = (comps.n1 - comps.n2) / (comps.n1 + comps.n2);
-    const r0_squared = r0 * r0;
-    return r0_squared + (1 - r0_squared) * std.math.pow(f32, 1 - cos, 5);
+    return r0 + (1 - r0) * std.math.pow(f32, 1 - cos, 5);
 }
 
 test "an intersection encapsulates t and object" {

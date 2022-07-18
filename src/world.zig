@@ -12,9 +12,9 @@ const ray = @import("ray.zig");
 const sph = @import("sphere.zig");
 const tup = @import("tuple.zig");
 
-// Set limit for number of recursive calls allowed to calculate color of
-// reflection.
-const default_remaining: usize = 5;
+// Set limit for number of recursive calls or ray casts allowed to calculate
+// color of reflection or refraction.
+const ray_depth_limit: usize = 5;
 
 pub const World = struct {
     light: lht.PointLight,
@@ -89,7 +89,7 @@ pub fn intersectWorld(xs: *std.ArrayList(int.Intersection), w: World, r: ray.Ray
 }
 
 pub fn shadeHit(w: World, comps: int.Computation) cnv.Color {
-    return shadeHitInternal(w, comps, default_remaining);
+    return shadeHitInternal(w, comps, ray_depth_limit);
 }
 
 fn shadeHitInternal(w: World, comps: int.Computation, remaining: usize) cnv.Color {
@@ -102,21 +102,24 @@ fn shadeHitInternal(w: World, comps: int.Computation, remaining: usize) cnv.Colo
         comps.normal,
         shadowed);
 
+    // In the most general case, a certain fraction of the light is reflected
+    // from the interface, and the remainder is refracted, assuming the
+    // material of the shape has reflective and refractive properties.
     const reflected = reflectedColorInternal(w, comps, remaining);
     const refracted = refractedColorInternal(w, comps, remaining);
 
     const material = comps.shape.material;
     if (material.reflective > 0 and material.transparency > 0) {
-        const one = @splat(3, @as(f32, 1.0));
         const reflectance = @splat(3, int.schlick(comps));
-        return surface + reflected * reflectance + refracted * (one - reflectance);
+        return surface + reflected * reflectance +
+                         refracted * (@splat(3, @as(f32, 1.0)) - reflectance);
     }
 
     return surface + reflected + refracted;
 }
 
 pub fn colorAt(w: World, r: ray.Ray) cnv.Color {
-    return colorAtInternal(w, r, default_remaining);
+    return colorAtInternal(w, r, ray_depth_limit);
 }
 
 fn colorAtInternal(w: World, r: ray.Ray, remaining: usize) cnv.Color {
@@ -155,7 +158,7 @@ pub fn isShadowed(w: World, p: tup.Point) bool {
 }
 
 pub fn reflectedColor(w: World, comps: int.Computation) cnv.Color {
-    return reflectedColorInternal(w, comps, default_remaining);
+    return reflectedColorInternal(w, comps, ray_depth_limit);
 }
 
 fn reflectedColorInternal(w: World, comps: int.Computation, remaining: usize) cnv.Color {
@@ -164,7 +167,8 @@ fn reflectedColorInternal(w: World, comps: int.Computation, remaining: usize) cn
     // Limit recursion to handle rays that bounce between parallel mirrors.
     if (remaining == 0) return black;
 
-    // In this case, the ray intersects a nonreflective surface.
+    // In this case, the ray intersects a nonreflective surface, so reflection
+    // stops.
     if (comps.shape.material.reflective == 0) return black;
 
     const reflect_ray = ray.Ray{
@@ -177,27 +181,42 @@ fn reflectedColorInternal(w: World, comps: int.Computation, remaining: usize) cn
 }
 
 pub fn refractedColor(w: World, comps: int.Computation) cnv.Color {
-    return refractedColorInternal(w, comps, default_remaining);
+    return refractedColorInternal(w, comps, ray_depth_limit);
 }
 
 fn refractedColorInternal(w: World, comps: int.Computation, remaining: usize) cnv.Color {
     const black = cnv.Color{0, 0, 0};
+
+    // Stop if the computation reaches the ray depth or number of recursive.
     if (remaining == 0) return black;
+
+    // Stop if the ray hits a material through which light doesn't transmit.
     if (comps.shape.material.transparency == 0) return black;
 
-    // TODO Explain these steps.
+    // Find the ratio of the first to the second refractive index.
     const n_ratio = comps.n1 / comps.n2;
+
+    // Compute the cosine of the angle of incidence.
     const cos_i = tup.dot(comps.eye, comps.normal);
+
+    // Use the Pythagorean trigonometric identity to calculate the sine-squared
+    // of the angle of refraction.
     const sin2_t = (n_ratio * n_ratio) * (1 - cos_i * cos_i);
 
-    // TODO Explain total internal reflection.
+    // Total internal reflection of light from a denser medium occurs if the
+    // angle of incidence is greater than the critical angle, where physics
+    // defines the critical angle as the smallest angle at which total internal
+    // reflection occurs. In this case, no transmission of light occurs from
+    // one medium to the other.
     if (sin2_t > 1) return black;
 
+    // Use the Pythagorean identity again to find the cosine of the angle of
+    // refraction.
     const cos_t = @sqrt(1.0 - sin2_t);
-    const direction = comps.normal * @splat(4, n_ratio * cos_i - cos_t) - comps.eye * @splat(4, n_ratio);
+
     const refract_ray = ray.Ray{
         .origin = comps.under_point,
-        .direction = direction,
+        .direction = comps.normal * @splat(4, n_ratio * cos_i - cos_t) - comps.eye * @splat(4, n_ratio),
     };
 
     const color = colorAtInternal(w, refract_ray, remaining - 1);
