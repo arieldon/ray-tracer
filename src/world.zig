@@ -153,7 +153,7 @@ pub fn isShadowed(w: World, p: tup.Point) bool {
     // Again, if the shadow ray intersects an object at some point in the
     // distance between the light source and the point, then the object lies
     // within a shadow.
-    if (int.hit(intersections.items)) |hit| return hit.t < distance;
+    if (int.hit(intersections.items)) |hit| return hit.shape.material.cast_shadow and hit.t < distance;
     return false;
 }
 
