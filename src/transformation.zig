@@ -5,6 +5,9 @@ const mat = @import("matrix.zig");
 const tup = @import("tuple.zig");
 
 pub fn viewTransform(from: tup.Point, to: tup.Point, up: tup.Vector) mat.Matrix {
+    // Parameter `from` specifies the point *from* which the scene is viewed;
+    // parameter `to` specifies the point at which *to* look; and parameter
+    // `up` specifies which direction is up.
     const forward = tup.normalize(to - from);
     const left = tup.cross(forward, tup.normalize(up));
     const true_up = tup.cross(left, forward);
