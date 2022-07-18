@@ -17,17 +17,17 @@ const tup = @import("tuple.zig");
 const default_remaining: usize = 5;
 
 pub const World = struct {
-    // FIXME Require a light for the scene. A scene without light isn't
-    // particularly useful, and marking the light as optional forces
-    // inefficient null checks later.
-    light: ?lht.PointLight,
+    light: lht.PointLight,
     spheres: std.ArrayList(sph.Sphere),
     planes: std.ArrayList(pln.Plane),
     allocator: std.mem.Allocator,
 
     pub fn init(allocator: std.mem.Allocator) World {
         return .{
-            .light = null,
+            .light = .{
+                .position = tup.point(-10, 10, -10),
+                .intensity = cnv.Color{1, 1, 1},
+            },
             .spheres = std.ArrayList(sph.Sphere).init(allocator),
             .planes = std.ArrayList(pln.Plane).init(allocator),
             .allocator = allocator,
@@ -37,9 +37,6 @@ pub const World = struct {
     // The tests below rely on this function.
     fn defaultInit(allocator: std.mem.Allocator) !World {
         var w = World.init(allocator);
-
-        // Add default light source.
-        w.light = lht.pointLight(tup.point(-10, 10, -10), cnv.color(1, 1, 1));
 
         var s1 = sph.sphere();
         s1.shape.material.color = cnv.color(0.8, 1.0, 0.6);
@@ -99,7 +96,7 @@ fn shadeHitInternal(w: World, comps: int.Computation, remaining: usize) cnv.Colo
     const shadowed = isShadowed(w, comps.over_point);
     const surface = mtl.lighting(
         comps.shape,
-        w.light.?,
+        w.light,
         comps.over_point,
         comps.eye,
         comps.normal,
@@ -137,7 +134,7 @@ fn colorAtInternal(w: World, r: ray.Ray, remaining: usize) cnv.Color {
 pub fn isShadowed(w: World, p: tup.Point) bool {
     // Mesasure distance from point to light source and calculate magnitude of
     // resulting vector.
-    const v = w.light.?.position - p;
+    const v = w.light.position - p;
     const distance = tup.magnitude(v);
 
     // Create shadow ray to cast. If between the point and the light source,
@@ -211,12 +208,20 @@ test "creating a world" {
     const w = world(std.testing.allocator);
     defer w.deinit();
 
+    const default_light = lht.PointLight{
+        .position = tup.point(-10, 10, -10),
+        .intensity = cnv.Color{1, 1, 1},
+    };
+
     try expectEqual(w.spheres.items.len, 0);
-    try expectEqual(w.light, null);
+    try expectEqual(w.light, default_light);
 }
 
 test "the default world" {
-    const light = lht.pointLight(tup.point(-10, 10, -10), cnv.color(1, 1, 1));
+    const light = lht.PointLight{
+        .position = tup.point(-10, 10, -10),
+        .intensity = cnv.Color{1, 1, 1},
+    };
 
     var s1 = sph.sphere();
     s1.id = 0;
@@ -269,7 +274,10 @@ test "shading an intersection" {
 
 test "shading an intersection from the inside" {
     var w = try defaultWorld(std.testing.allocator);
-    w.light = lht.pointLight(tup.point(0, 0.25, 0), cnv.color(1, 1, 1));
+    w.light = lht.PointLight{
+        .position = tup.point(0, 0.25, 0),
+        .intensity = cnv.Color{1, 1, 1},
+    };
     defer w.deinit();
 
     const r = ray.ray(tup.point(0, 0, 0), tup.vector(0, 0, 1));
@@ -352,7 +360,10 @@ test "there is no shadow when an object is behind the point" {
 
 test "shadeHit() is given an intersection in shadow" {
     var w = world(std.testing.allocator);
-    w.light = lht.pointLight(tup.point(0, 0, -10), cnv.color(1, 1, 1));
+    w.light = lht.PointLight{
+        .position = tup.point(0, 0, -10),
+        .intensity = cnv.Color{1, 1, 1},
+    };
     defer w.deinit();
 
     var s1 = sph.sphere();

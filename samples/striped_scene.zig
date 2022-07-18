@@ -45,7 +45,10 @@ pub fn main() !void {
     defer world.deinit();
 
     // Define light source in the world.
-    world.light = rt.lht.pointLight(rt.tup.point(0, 10, -10), rt.cnv.color(1, 1, 1));
+    world.light = rt.lht.PointLight{
+        .position = rt.tup.point(0, 10, -10),
+        .intensity = rt.cnv.color(1, 1, 1)
+    };
 
     // Add items to the world to render them.
     try world.spheres.append(sphere);

@@ -15,7 +15,10 @@ pub fn main() !void {
     // Create a light source above, behind, and to the left of the eye.
     const light_position = rt.tup.point(-10, 10, -10);
     const light_color = rt.cnv.color(1, 1, 1);
-    const light = rt.lht.pointLight(light_position, light_color);
+    const light = rt.lht.PointLight{
+        .position = light_position,
+        .intensity = light_color
+    };
 
     // Create a purple sphere.
     var sphere = rt.sph.sphere();

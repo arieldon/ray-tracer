@@ -80,7 +80,10 @@ pub fn main() !void {
     try world.spheres.append(left);
 
     // Configure the world's light source.
-    world.light = rt.lht.pointLight(rt.tup.point(-10, 10, -10), rt.cnv.color(1, 1, 1));
+    world.light = rt.lht.PointLight{
+        .position = rt.tup.point(-10, 10, -10),
+        .intensity = rt.cnv.color(1, 1, 1)
+    };
 
     var camera = rt.cam.camera(image_width, image_height, field_of_view);
     camera.transform = rt.trm.viewTransform(

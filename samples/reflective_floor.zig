@@ -33,7 +33,10 @@ pub fn main() !void {
     var world = rt.wrd.world(allocator);
     defer world.deinit();
 
-    world.light = rt.lht.pointLight(rt.tup.point(0, 30, -5), rt.cnv.color(1, 1, 1));
+    world.light = rt.lht.PointLight{
+        .position = rt.tup.point(0, 30, -5),
+        .intensity = rt.cnv.color(1, 1, 1)
+    };
 
     try world.spheres.append(sphere);
     try world.planes.append(floor);
