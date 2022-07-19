@@ -135,7 +135,7 @@ fn colorAtInternal(w: World, r: ray.Ray, remaining: usize) cnv.Color {
 }
 
 pub fn isShadowed(w: World, p: tup.Point) bool {
-    // Mesasure distance from point to light source and calculate magnitude of
+    // Measure distance from point to light source and calculate magnitude of
     // resulting vector.
     const v = w.light.position - p;
     const distance = tup.magnitude(v);
