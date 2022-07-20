@@ -2,6 +2,7 @@ const std = @import("std");
 const expect = std.testing.expect;
 const expectEqual = std.testing.expectEqual;
 const cnv = @import("canvas.zig");
+const cub = @import("cube.zig");
 const int = @import("intersection.zig");
 const lht = @import("light.zig");
 const mat = @import("matrix.zig");
@@ -20,6 +21,7 @@ pub const World = struct {
     light: lht.PointLight,
     spheres: std.ArrayList(sph.Sphere),
     planes: std.ArrayList(pln.Plane),
+    cubes: std.ArrayList(cub.Cube),
     allocator: std.mem.Allocator,
 
     pub fn init(allocator: std.mem.Allocator) World {
@@ -30,6 +32,7 @@ pub const World = struct {
             },
             .spheres = std.ArrayList(sph.Sphere).init(allocator),
             .planes = std.ArrayList(pln.Plane).init(allocator),
+            .cubes = std.ArrayList(cub.Cube).init(allocator),
             .allocator = allocator,
         };
     }
@@ -55,6 +58,7 @@ pub const World = struct {
     pub fn deinit(self: World) void {
         self.spheres.deinit();
         self.planes.deinit();
+        self.cubes.deinit();
     }
 
     pub fn containsSphere(self: World, s: sph.Sphere) bool {
@@ -64,6 +68,11 @@ pub const World = struct {
 
     pub fn containsPlane(self: World, p: pln.Plane) bool {
         for (self.planes.items) |q| if (std.meta.equal(p, q)) return true;
+        return false;
+    }
+
+    pub fn containsCube(self: World, c: cub.Cube) bool {
+        for (self.cubes.items) |d| if (std.meta.equal(c, d)) return true;
         return false;
     }
 };
@@ -83,6 +92,7 @@ pub fn intersectWorld(xs: *std.ArrayList(int.Intersection), w: World, r: ray.Ray
     // FIXME Handle OutOfMemory errors gracefully.
     for (w.spheres.items) |sphere| sph.intersect(xs, sphere, r) catch unreachable;
     for (w.planes.items)  |plane|  pln.intersect(xs, plane, r) catch unreachable;
+    for (w.cubes.items)   |cube|   cub.intersect(xs, cube, r) catch unreachable;
 
     // Call hit() only to sort the intersections.
     _ = int.hit(xs.items);

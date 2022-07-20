@@ -3,6 +3,7 @@ const expect = std.testing.expect;
 const expectEqual = std.testing.expectEqual;
 const expectApproxEqAbs = std.testing.expectApproxEqAbs;
 const cnv = @import("canvas.zig");
+const cub = @import("cube.zig");
 const mat = @import("matrix.zig");
 const pln = @import("plane.zig");
 const ray = @import("ray.zig");
@@ -59,6 +60,7 @@ pub fn prepareComputations(i: Intersection, r: ray.Ray) Computation {
     comps.normal = switch (i.shape.shape_type) {
         .sphere => sph.normal_at(i.shape, comps.point),
         .plane  => pln.normal_at(i.shape, comps.point),
+        .cube   => cub.normal_at(i.shape, comps.point),
     };
 
     if (tup.dot(comps.normal, comps.eye) < 0) {

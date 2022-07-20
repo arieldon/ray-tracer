@@ -6,6 +6,7 @@ const mtl = @import("material.zig");
 pub const ShapeType = enum {
     sphere,
     plane,
+    cube,
 };
 
 pub const Shape = struct {

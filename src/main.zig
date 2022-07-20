@@ -1,6 +1,7 @@
 const std = @import("std");
 
 pub const cam = @import("camera.zig");
+pub const cub = @import("cube.zig");
 pub const cnv = @import("canvas.zig");
 pub const int = @import("intersection.zig");
 pub const lht = @import("light.zig");
