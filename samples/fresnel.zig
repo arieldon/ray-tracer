@@ -10,19 +10,18 @@ pub fn main() !void {
     const allocator = std.heap.page_allocator;
 
     // Initialize the checkered plane that serves as the bottom of the lake.
-    const bottom = rt.pln.Plane{
+    var bottom = rt.pln.Plane{
         .shape = .{
             .shape_type = .plane,
-            .transform = rt.mat.translation(0, -3, 0),
+            .transform = rt.mat.translation(0, -15, 0),
             .material = .{
                 .ambient = 1.0,
                 .pattern = .{
-                    .a = rt.cnv.Color{0.85, 0, 0},
+                    .a = rt.cnv.Color{0.85, 0.1, 0.1},
                     .b = rt.cnv.Color{0.3, 0.85, 0.15},
                     .color_map = rt.pat.checker,
                 },
             },
-            .transform = rt.mat.translation(0, -15, 0),
         },
     };
 
@@ -52,6 +51,7 @@ pub fn main() !void {
             .transform = rt.mat.mul(rt.mat.translation(0, 0, 30), rt.mat.rotationX(std.math.pi / 2.0)),
             .material = .{
                 .transparency = 0.75,
+                .specular = 0.0,
                 .pattern = .{
                     .a = rt.cnv.Color{1, 1, 1},
                     .b = rt.cnv.Color{0.5, 0.5, 0.5},
@@ -65,19 +65,18 @@ pub fn main() !void {
     var world = rt.wrd.world(allocator);
     defer world.deinit();
 
-    world.light.position = rt.tup.point(0, 40, -10);
+    world.light.position = rt.tup.point(0, 30, -15);
 
-    try world.planes.append(water);
     try world.planes.append(bottom);
     try world.planes.append(water);
     try world.planes.append(far);
 
-    const image_width = 1024;
-    const image_height = 512;
+    const image_width = 512;
+    const image_height = 256;
     const field_of_view = std.math.pi / 2.0;
     var camera = rt.cam.camera(image_width, image_height, field_of_view);
 
-    const from = rt.tup.point(0, 1.5, -5);
+    const from = rt.tup.point(0, 1.5, -15);
     const to = rt.tup.point(0, 1, 0);
     const up = rt.tup.vector(0, 1, 0);
     camera.transform = rt.trm.viewTransform(from, to, up);
