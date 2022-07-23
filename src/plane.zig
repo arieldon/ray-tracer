@@ -30,10 +30,14 @@ pub fn intersect(ts: *std.ArrayList(int.Intersection), p: Plane, r: ray.Ray) !vo
 
     // Compute the intersection of the transformed ray with the plane.
     const t = -r_prime.origin[1] / r_prime.direction[1];
-    try ts.append(int.Intersection{ .t = t, .shape = p.shape });
+    try ts.append(int.Intersection{
+        .t = t,
+        .shape = p.shape,
+        .normal = normalAt(p.shape, ray.position(r, t)),
+    });
 }
 
-pub fn normal_at(shape: shp.Shape, world_point: tup.Point) tup.Vector {
+pub fn normalAt(shape: shp.Shape, world_point: tup.Point) tup.Vector {
     // The point in the world isn't necessary since the normal vector of a
     // plane remains constant at all points.
     _ = world_point;
@@ -53,9 +57,9 @@ pub fn normal_at(shape: shp.Shape, world_point: tup.Point) tup.Vector {
 
 test "the normal of a plane is constant everywhere" {
     const p = plane();
-    const n1 = normal_at(p.shape, tup.point(0, 0, 0));
-    const n2 = normal_at(p.shape, tup.point(10, 0, -10));
-    const n3 = normal_at(p.shape, tup.point(-5, 0, 150));
+    const n1 = normalAt(p.shape, tup.point(0, 0, 0));
+    const n2 = normalAt(p.shape, tup.point(10, 0, -10));
+    const n3 = normalAt(p.shape, tup.point(-5, 0, 150));
     try expectEqual(n1, tup.vector(0, 1, 0));
     try expectEqual(n2, tup.vector(0, 1, 0));
     try expectEqual(n3, tup.vector(0, 1, 0));

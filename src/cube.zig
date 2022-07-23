@@ -28,8 +28,8 @@ pub fn intersect(ts: *std.ArrayList(int.Intersection), c: Cube, r: ray.Ray) !voi
     if (tmin > tmax) return;
 
     try ts.appendSlice(&[_]int.Intersection{
-        .{ .t = tmin, .shape = c.shape },
-        .{ .t = tmax, .shape = c.shape },
+        .{ .t = tmin, .shape = c.shape, .normal = normalAt(c.shape, ray.position(r, tmin)) },
+        .{ .t = tmax, .shape = c.shape, .normal = normalAt(c.shape, ray.position(r, tmax)) },
     });
 }
 
@@ -50,7 +50,7 @@ fn checkAxis(origin: f32, direction: f32) TMinMax {
     return if (tmin > tmax) .{ .tmin = tmax, .tmax = tmin } else .{ .tmin = tmin, .tmax = tmax };
 }
 
-pub fn normal_at(shape: shp.Shape, world_point: tup.Point) tup.Vector {
+pub fn normalAt(shape: shp.Shape, world_point: tup.Point) tup.Vector {
     const inverse = mat.inverse(shape.transform);
     const object_point = mat.mul(inverse, world_point);
 
@@ -142,7 +142,7 @@ test "the normal on the surface of a cube" {
         .{ .point = tup.Point{1, 1, 1, 1}, .normal = tup.Vector{1, 0, 0, 0} },
         .{ .point = tup.Point{-1, -1, -1, 1}, .normal = tup.Vector{-1, 0, 0, 0} },
     }) |x| {
-        const normal = normal_at(c.shape, x.point);
+        const normal = normalAt(c.shape, x.point);
         try expectEqual(x.normal, normal);
     }
 }

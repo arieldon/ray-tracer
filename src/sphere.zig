@@ -64,13 +64,16 @@ pub fn intersect(ts: *std.ArrayList(int.Intersection), s: Sphere, r: ray.Ray) !v
         // will be unique. When the ray is tangent to the sphere and it
         // intersects at one point, both t values will be the same. In this
         // latter case, the discriminant is zero.
-        var t1 = int.Intersection{ .t = (-b - @sqrt(discriminant)) / (2 * a), .shape = s.shape };
-        var t2 = int.Intersection{ .t = (-b + @sqrt(discriminant)) / (2 * a), .shape = s.shape };
-        try ts.appendSlice(&[_]int.Intersection{ t1, t2 });
+        const t0 = (-b - @sqrt(discriminant)) / (2 * a);
+        const t1 = (-b + @sqrt(discriminant)) / (2 * a);
+        try ts.appendSlice(&[_]int.Intersection{
+            .{ .t = t0, .shape = s.shape, .normal = normalAt(s.shape, ray.position(r, t0)) },
+            .{ .t = t1, .shape = s.shape, .normal = normalAt(s.shape, ray.position(r, t1)) },
+        });
     }
 }
 
-pub fn normal_at(shape: shp.Shape, world_point: tup.Point) tup.Vector {
+pub fn normalAt(shape: shp.Shape, world_point: tup.Point) tup.Vector {
     const inverse = mat.inverse(shape.transform);
 
     // Convert the point from world space to object space. Because the sphere
@@ -214,40 +217,40 @@ test "intersecting a translated sphere with a ray" {
 
 test "the normal on a sphere at a point on the x axis" {
     const s = sphere();
-    const n = normal_at(s.shape, tup.point(1, 0, 0));
+    const n = normalAt(s.shape, tup.point(1, 0, 0));
     try expectEqual(n, tup.vector(1, 0, 0));
 }
 
 test "the normal on a sphere at a point on the y axis" {
     const s = sphere();
-    const n = normal_at(s.shape, tup.point(0, 1, 0));
+    const n = normalAt(s.shape, tup.point(0, 1, 0));
     try expectEqual(n, tup.vector(0, 1, 0));
 }
 
 test "the normal on a sphere at a point on the z axis" {
     const s = sphere();
-    const n = normal_at(s.shape, tup.point(0, 0, 1));
+    const n = normalAt(s.shape, tup.point(0, 0, 1));
     try expectEqual(n, tup.vector(0, 0, 1));
 }
 
 test "the normal on a sphere at a nonaxial point" {
     const s = sphere();
     const a = @sqrt(3.0) / 3.0;
-    const n = normal_at(s.shape, tup.point(a, a, a));
+    const n = normalAt(s.shape, tup.point(a, a, a));
     try expect(tup.equal(n, tup.vector(a, a, a)));
 }
 
 test "the normal is a normalized vector" {
     const s = sphere();
     const a = @sqrt(3.0) / 3.0;
-    const n = normal_at(s.shape, tup.point(a, a, a));
+    const n = normalAt(s.shape, tup.point(a, a, a));
     try expect(tup.equal(n, tup.normalize(n)));
 }
 
 test "computing the normal on a translated sphere" {
     var s = sphere();
     s.shape.transform = mat.translation(0, 1, 0);
-    const n = normal_at(s.shape, tup.point(0, 1.70711, -0.70711));
+    const n = normalAt(s.shape, tup.point(0, 1.70711, -0.70711));
     try expect(tup.equal(n, tup.vector(0, 0.70711, -0.70711)));
 }
 
@@ -255,7 +258,7 @@ test "computing the normal on a transformed sphere" {
     var s = sphere();
     s.shape.transform = mat.mul(mat.scaling(1, 0.5, 1), mat.rotationZ(std.math.pi / 5.0));
     const a = @sqrt(2.0) / 2.0;
-    const n = normal_at(s.shape, tup.point(0, a, -a));
+    const n = normalAt(s.shape, tup.point(0, a, -a));
     try expect(tup.equal(n, tup.vector(0, 0.97014, -0.24254)));
 }
 

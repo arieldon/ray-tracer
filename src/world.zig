@@ -311,7 +311,11 @@ test "shading an intersection from the inside" {
 
     const r = ray.ray(tup.point(0, 0, 0), tup.vector(0, 0, 1));
     const s = w.spheres.items[1];
-    const i = int.Intersection{ .t = 0.5, .shape = s.shape };
+    const i = int.Intersection{
+        .t = 0.5,
+        .shape = s.shape,
+        .normal = sph.normalAt(s.shape, ray.position(r, 0.5)),
+    };
 
     const comps = int.prepareComputations(i, r);
     const c = shadeHit(w, comps);
@@ -449,8 +453,11 @@ test "the reflected color for a reflective material" {
         .origin = tup.point(0, 0, -3),
         .direction = tup.vector(0, -b, b),
     };
-    const i = int.Intersection{.t = a, .shape = plane.shape};
-
+    const i = int.Intersection{
+        .t = a,
+        .shape = plane.shape,
+        .normal = pln.normalAt(plane.shape, ray.position(r, a)),
+    };
 
     const comps = int.prepareComputations(i, r);
     const color = reflectedColor(w, comps);
@@ -477,7 +484,11 @@ test "shadeHit() with a reflective material" {
         .origin = tup.point(0, 0, -3),
         .direction = tup.vector(0, -b, b),
     };
-    const i = int.Intersection{.t = a, .shape = plane.shape};
+    const i = int.Intersection{
+        .t = a,
+        .shape = plane.shape,
+        .normal = pln.normalAt(plane.shape, ray.position(r, a)),
+    };
 
     const comps = int.prepareComputations(i, r);
     const color = shadeHit(w, comps);
@@ -635,10 +646,10 @@ test "the refracted color with a refracted ray" {
         .direction = tup.vector(0, 1, 0),
     };
     const xs = &[_]int.Intersection{
-        .{ .t = -0.9899, .shape = a.shape },
-        .{ .t = -0.4899, .shape = b.shape },
-        .{ .t =  0.4899, .shape = b.shape },
-        .{ .t =  0.9899, .shape = a.shape },
+        .{ .t = -0.9899, .shape = a.shape, .normal = sph.normalAt(a.shape, ray.position(r, -0.9899)) },
+        .{ .t = -0.4899, .shape = b.shape, .normal = sph.normalAt(b.shape, ray.position(r, -0.4899)) },
+        .{ .t =  0.4899, .shape = b.shape, .normal = sph.normalAt(b.shape, ray.position(r, 0.4899)) },
+        .{ .t =  0.9899, .shape = a.shape, .normal = sph.normalAt(a.shape, ray.position(r, 0.9899)) },
     };
     const comps = int.prepareComputationsForRefraction(xs[2], r, xs);
 
@@ -677,7 +688,9 @@ test "shadeHit() with a transparent material" {
         .origin = tup.point(0, 0, -3),
         .direction = tup.vector(0, -b, b),
     };
-    const xs = &[_]int.Intersection{ .{ .t = a, .shape = floor.shape } };
+    const xs = &[_]int.Intersection{
+        .{ .t = a, .shape = floor.shape, .normal = pln.normalAt(floor.shape, ray.position(r, a)) }
+    };
     const comps = int.prepareComputationsForRefraction(xs[0], r, xs);
 
     try w.planes.append(floor);
@@ -723,7 +736,9 @@ test "shadeHit() with a reflective, transparent material" {
     try w.planes.append(floor);
     try w.spheres.append(ball);
 
-    const xs = &[_]int.Intersection{ .{ .t = a, .shape = floor.shape } };
+    const xs = &[_]int.Intersection{
+        .{ .t = a, .shape = floor.shape, .normal = pln.normalAt(floor.shape, ray.position(r, a)) }
+    };
     const comps = int.prepareComputationsForRefraction(xs[0], r, xs);
 
     const color = shadeHit(w, comps);

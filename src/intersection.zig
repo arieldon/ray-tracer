@@ -13,7 +13,15 @@ const tup = @import("tuple.zig");
 
 pub const Intersection = struct {
     t: f32,
+
+    // FIXME Is it necessary to pass shape if normal already computed? I think
+    // so, it seems the material is necessary to find the refractive index.
+    // Intsead of passing the entire material, pass only the refractive field.
     shape: shp.Shape,
+
+    // FIXME This shouldn't be set by default. Make it an optional field
+    // instead.
+    normal: tup.Vector = tup.vector(-1, -1, -1),
 };
 
 pub inline fn intersections(xs: *std.ArrayList(Intersection), new: []Intersection) !void {
@@ -57,17 +65,15 @@ pub fn prepareComputations(i: Intersection, r: ray.Ray) Computation {
     // Precompute useful values.
     comps.point = ray.position(r, i.t);
     comps.eye = -r.direction;
-    comps.normal = switch (i.shape.shape_type) {
-        .sphere => sph.normal_at(i.shape, comps.point),
-        .plane  => pln.normal_at(i.shape, comps.point),
-        .cube   => cub.normal_at(i.shape, comps.point),
-    };
 
-    if (tup.dot(comps.normal, comps.eye) < 0) {
+    // FIXME Is it necessary to copy the normal vector. I think it's fine for
+    // now because it's only a 32-bit float.
+    if (tup.dot(i.normal, comps.eye) < 0) {
         comps.inside = true;
-        comps.normal = -comps.normal;
+        comps.normal = -i.normal;
     } else {
         comps.inside = false;
+        comps.normal = i.normal;
     }
 
     // Slightly adjust point in direction of normal vector to move the point
@@ -235,7 +241,12 @@ test "the hit is always the lowest nonnegative intersection" {
 test "precomputing the state of an intersection" {
     const r = ray.ray(tup.point(0, 0, -5), tup.vector(0, 0, 1));
     const s = sph.sphere();
-    const i = Intersection{ .t = 4, .shape = s.shape };
+    const t = 4;
+    const i = Intersection{
+        .t = t,
+        .shape = s.shape,
+        .normal = sph.normalAt(s.shape, ray.position(r, t))
+    };
     const comps = prepareComputations(i, r);
     try expectEqual(comps.t, i.t);
     try expectEqual(comps.shape, i.shape);
@@ -247,7 +258,12 @@ test "precomputing the state of an intersection" {
 test "the hit, when an intersection occurs on the outside" {
     const r = ray.ray(tup.point(0, 0, -5), tup.vector(0, 0, 1));
     const s = sph.sphere();
-    const i = Intersection{ .t = 4, .shape = s.shape };
+    const t = 4;
+    const i = Intersection{
+        .t = t,
+        .shape = s.shape,
+        .normal = sph.normalAt(s.shape, ray.position(r, t)),
+    };
     const comps = prepareComputations(i, r);
     try expectEqual(comps.inside, false);
 }
@@ -255,7 +271,12 @@ test "the hit, when an intersection occurs on the outside" {
 test "the hit, when an intersection occurs on the inside" {
     const r = ray.ray(tup.point(0, 0, 0), tup.vector(0, 0, 1));
     const s = sph.sphere();
-    const i = Intersection{ .t = 1, .shape = s.shape };
+    const t = 1;
+    const i = Intersection{
+        .t = t,
+        .shape = s.shape,
+        .normal = sph.normalAt(s.shape, ray.position(r, t)),
+    };
     const comps = prepareComputations(i, r);
     try expectEqual(comps.point, tup.point(0, 0, 1));
     try expectEqual(comps.eye, tup.vector(0, 0, -1));
@@ -288,6 +309,7 @@ test "precomputing the reflection vector" {
     const i = Intersection{
         .t = b,
         .shape = p.shape,
+        .normal = pln.normalAt(p.shape, ray.position(r, b))
     };
 
     const comps = prepareComputations(i, r);
@@ -395,8 +417,16 @@ test "the Schlick approximation under total internal reflection" {
         .direction = tup.vector(0, 1, 0),
     };
     const xs = &[_]Intersection{
-        .{ .t = -b, .shape = sphere.shape },
-        .{ .t =  b, .shape = sphere.shape },
+        .{
+            .t = -b,
+            .shape = sphere.shape,
+            .normal = sph.normalAt(sphere.shape, ray.position(r, -b)),
+        },
+        .{
+            .t =  b,
+            .shape = sphere.shape,
+            .normal = sph.normalAt(sphere.shape, ray.position(r, b)),
+        },
     };
     const comps = prepareComputationsForRefraction(xs[1], r, xs);
 
@@ -444,7 +474,14 @@ test "the Schlick approximation with small angle and n2 > n1" {
         .origin = tup.point(0, 0.99, -2),
         .direction = tup.vector(0, 0, 1),
     };
-    const xs = &[_]Intersection{ .{ .t = 1.8589, .shape = sphere.shape } };
+    const t = 1.8589;
+    const xs = &[_]Intersection{
+        .{
+            .t = t,
+            .shape = sphere.shape,
+            .normal = sph.normalAt(sphere.shape, ray.position(r, t))
+        },
+    };
     const comps = prepareComputationsForRefraction(xs[0], r, xs);
 
     const reflectance = schlick(comps);

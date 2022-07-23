@@ -47,7 +47,7 @@ pub fn main() !void {
             try rt.sph.intersect(&intersections, sphere, ray);
             if (rt.int.hit(intersections.items)) |hit| {
                 const point = rt.ray.position(ray, hit.t);
-                const normal = rt.sph.normal_at(hit.shape, point);
+                const normal = rt.sph.normalAt(hit.shape, point);
                 const eye = -ray.direction;
                 const color = rt.mtl.lighting(
                     hit.shape,
