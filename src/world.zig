@@ -3,6 +3,7 @@ const expect = std.testing.expect;
 const expectEqual = std.testing.expectEqual;
 const cnv = @import("canvas.zig");
 const cub = @import("cube.zig");
+const cyl = @import("cylinder.zig");
 const int = @import("intersection.zig");
 const lht = @import("light.zig");
 const mat = @import("matrix.zig");
@@ -22,6 +23,7 @@ pub const World = struct {
     spheres: std.ArrayList(sph.Sphere),
     planes: std.ArrayList(pln.Plane),
     cubes: std.ArrayList(cub.Cube),
+    cylinders: std.ArrayList(cyl.Cylinder),
     allocator: std.mem.Allocator,
 
     pub fn init(allocator: std.mem.Allocator) World {
@@ -33,6 +35,7 @@ pub const World = struct {
             .spheres = std.ArrayList(sph.Sphere).init(allocator),
             .planes = std.ArrayList(pln.Plane).init(allocator),
             .cubes = std.ArrayList(cub.Cube).init(allocator),
+            .cylinders = std.ArrayList(cyl.Cylinder).init(allocator),
             .allocator = allocator,
         };
     }
@@ -59,6 +62,7 @@ pub const World = struct {
         self.spheres.deinit();
         self.planes.deinit();
         self.cubes.deinit();
+        self.cylinders.deinit();
     }
 
     pub fn containsSphere(self: World, s: sph.Sphere) bool {
@@ -73,6 +77,11 @@ pub const World = struct {
 
     pub fn containsCube(self: World, c: cub.Cube) bool {
         for (self.cubes.items) |d| if (std.meta.equal(c, d)) return true;
+        return false;
+    }
+
+    pub fn containsCylinder(self: World, c: cyl.Cylinder) bool {
+        for (self.cylinder.items) |d| if (std.meta.equal(c, d)) return true;
         return false;
     }
 };
@@ -91,8 +100,9 @@ pub fn intersectWorld(xs: *std.ArrayList(int.Intersection), w: World, r: ray.Ray
 
     // FIXME Handle OutOfMemory errors gracefully.
     for (w.spheres.items) |sphere| sph.intersect(xs, sphere, r) catch unreachable;
-    for (w.planes.items)  |plane|  pln.intersect(xs, plane, r) catch unreachable;
-    for (w.cubes.items)   |cube|   cub.intersect(xs, cube, r) catch unreachable;
+    for (w.planes.items) |plane| pln.intersect(xs, plane, r) catch unreachable;
+    for (w.cubes.items) |cube| cub.intersect(xs, cube, r) catch unreachable;
+    for (w.cylinders.items) |cylinder| cyl.intersect(xs, cylinder, r) catch unreachable;
 
     // Call hit() only to sort the intersections.
     _ = int.hit(xs.items);

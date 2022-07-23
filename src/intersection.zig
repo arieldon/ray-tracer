@@ -4,6 +4,7 @@ const expectEqual = std.testing.expectEqual;
 const expectApproxEqAbs = std.testing.expectApproxEqAbs;
 const cnv = @import("canvas.zig");
 const cub = @import("cube.zig");
+const cyl = @import("cylinder.zig");
 const mat = @import("matrix.zig");
 const pln = @import("plane.zig");
 const ray = @import("ray.zig");

@@ -7,6 +7,7 @@ pub const ShapeType = enum {
     sphere,
     plane,
     cube,
+    cylinder,
 };
 
 pub const Shape = struct {
