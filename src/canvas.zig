@@ -3,13 +3,13 @@ const expectEqual = std.testing.expectEqual;
 const expectEqualStrings = std.testing.expectEqualStrings;
 const tuple = @import("tuple.zig");
 
-pub const Color = @Vector(3, f32);
+pub const Color = @Vector(3, f64);
 
 // The epsilon for color comparison differs from that of tuples because a
 // smaller epsilon caused a lot of grain in the scene.
-pub const color_epsilon: f32 = 0.01;
+pub const color_epsilon: f64 = 0.01;
 
-pub fn color(r: f32, g: f32, b: f32) Color {
+pub fn color(r: f64, g: f64, b: f64) Color {
     return .{ r, g, b };
 }
 

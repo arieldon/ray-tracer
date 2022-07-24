@@ -132,7 +132,7 @@ fn shadeHitInternal(w: World, comps: int.Computation, remaining: usize) cnv.Colo
     if (material.reflective > 0 and material.transparency > 0) {
         const reflectance = @splat(3, int.schlick(comps));
         return surface + reflected * reflectance +
-                         refracted * (@splat(3, @as(f32, 1.0)) - reflectance);
+                         refracted * (@splat(3, @as(f64, 1.0)) - reflectance);
     }
 
     return surface + reflected + refracted;

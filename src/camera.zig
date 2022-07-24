@@ -11,16 +11,16 @@ const wrd = @import("world.zig");
 pub const Camera = struct {
     horizontal_size: u32,
     vertical_size: u32,
-    field_of_view: f32,
-    half_width: f32,
-    half_height: f32,
-    pixel_size: f32,
+    field_of_view: f64,
+    half_width: f64,
+    half_height: f64,
+    pixel_size: f64,
     transform: mat.Matrix,
 };
 
-pub fn camera(horizontal_size: u32, vertical_size: u32, field_of_view: f32) Camera {
-    const h = @intToFloat(f32, horizontal_size);
-    const v = @intToFloat(f32, vertical_size);
+pub fn camera(horizontal_size: u32, vertical_size: u32, field_of_view: f64) Camera {
+    const h = @intToFloat(f64, horizontal_size);
+    const v = @intToFloat(f64, vertical_size);
 
     var c: Camera = undefined;
 
@@ -44,8 +44,8 @@ pub fn camera(horizontal_size: u32, vertical_size: u32, field_of_view: f32) Came
 }
 
 pub fn rayForPixel(c: Camera, px: u32, py: u32) ray.Ray {
-    const x_offset = (@intToFloat(f32, px) + 0.5) * c.pixel_size;
-    const y_offset = (@intToFloat(f32, py) + 0.5) * c.pixel_size;
+    const x_offset = (@intToFloat(f64, px) + 0.5) * c.pixel_size;
+    const y_offset = (@intToFloat(f64, py) + 0.5) * c.pixel_size;
 
     const world_x = c.half_width - x_offset;
     const world_y = c.half_height - y_offset;

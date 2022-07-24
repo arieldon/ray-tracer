@@ -13,7 +13,7 @@ const sph = @import("sphere.zig");
 const tup = @import("tuple.zig");
 
 pub const Intersection = struct {
-    t: f32,
+    t: f64,
 
     // FIXME Is it necessary to pass shape if normal already computed? I think
     // so, it seems the material is necessary to find the refractive index.
@@ -43,9 +43,9 @@ pub fn hit(xs: []Intersection) ?Intersection {
 }
 
 pub const Computation = struct {
-    t: f32,
-    n1: f32,
-    n2: f32,
+    t: f64,
+    n1: f64,
+    n2: f64,
     shape: shp.Shape,
     point: tup.Point,
     over_point: tup.Point,
@@ -80,11 +80,11 @@ pub fn prepareComputations(i: Intersection, r: ray.Ray) Computation {
     // Slightly adjust point in direction of normal vector to move the point
     // above the surface of the shape, effectively preventing the grain from
     // self-shadowing.
-    comps.over_point = comps.point + comps.normal * @splat(4, @as(f32, tup.epsilon));
+    comps.over_point = comps.point + comps.normal * @splat(4, @as(f64, tup.epsilon));
 
     // Slighly adjust point below the surface of the shape to describe where
     // refracted rays originate.
-    comps.under_point = comps.point - comps.normal * @splat(4, @as(f32, tup.epsilon));
+    comps.under_point = comps.point - comps.normal * @splat(4, @as(f64, tup.epsilon));
 
     // Precompute reflection vector.
     comps.reflect = tup.reflect(r.direction, comps.normal);
@@ -148,7 +148,7 @@ pub fn prepareComputationsForRefraction(i: Intersection, r: ray.Ray, xs: []Inter
     return comps;
 }
 
-pub fn schlick(comps: Computation) f32 {
+pub fn schlick(comps: Computation) f64 {
     // Schlick's approximation serves as an approximation for the Fresnel
     // equation, which determines the amounts of light reflected and refracted
     // at an intersection.
@@ -166,7 +166,7 @@ pub fn schlick(comps: Computation) f32 {
         cos = @sqrt(1.0 - sin2_t);
     }
 
-    return r0 + (1 - r0) * std.math.pow(f32, 1 - cos, 5);
+    return r0 + (1 - r0) * std.math.pow(f64, 1 - cos, 5);
 }
 
 test "an intersection encapsulates t and object" {

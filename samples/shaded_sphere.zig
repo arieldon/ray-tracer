@@ -9,7 +9,7 @@ pub fn main() !void {
     const wall_z = 10;
     const wall_size = 7.0;
     const half = wall_size / 2.0;
-    const pixel_size = wall_size / @intToFloat(f32, canvas_pixels);
+    const pixel_size = wall_size / @intToFloat(f64, canvas_pixels);
     const ray_origin = rt.tup.point(0, 0, -5);
 
     // Create a light source above, behind, and to the left of the eye.
@@ -34,11 +34,11 @@ pub fn main() !void {
 
     var y: u32 = 0;
     while (y < canvas_pixels) : (y += 1) {
-        const world_y = half - pixel_size * @intToFloat(f32, y);
+        const world_y = half - pixel_size * @intToFloat(f64, y);
 
         var x: u32 = 0;
         while (x < canvas_pixels) : (x += 1) {
-            const world_x = -half + pixel_size * @intToFloat(f32, x);
+            const world_x = -half + pixel_size * @intToFloat(f64, x);
             const position = rt.tup.point(world_x, world_y, wall_z);
             const ray = rt.ray.ray(ray_origin, rt.tup.normalize(position - ray_origin));
 

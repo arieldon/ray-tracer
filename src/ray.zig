@@ -15,7 +15,7 @@ pub fn ray(origin: tup.Point, direction: tup.Vector) Ray {
     };
 }
 
-pub fn position(r: Ray, t: f32) tup.Point {
+pub fn position(r: Ray, t: f64) tup.Point {
     return r.origin + r.direction * @splat(4, t);
 }
 

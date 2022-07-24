@@ -9,9 +9,9 @@ const point = tup.point;
 const vector = tup.vector;
 
 pub const Matrix = Matrix4x4;
-pub const Matrix4x4 = [4]@Vector(4, f32);
-pub const Matrix3x3 = [3]@Vector(3, f32);
-pub const Matrix2x2 = [2]@Vector(2, f32);
+pub const Matrix4x4 = [4]@Vector(4, f64);
+pub const Matrix3x3 = [3]@Vector(3, f64);
+pub const Matrix2x2 = [2]@Vector(2, f64);
 
 pub const identity = Matrix{
     .{ 1, 0, 0, 0 },
@@ -86,7 +86,7 @@ pub fn transpose(m: Matrix) Matrix {
     return n;
 }
 
-pub fn determinant(m: anytype) f32 {
+pub fn determinant(m: anytype) f64 {
     comptime {
         const t = @TypeOf(m);
         if (t != Matrix2x2 and t != Matrix3x3 and t != Matrix4x4) {
@@ -94,7 +94,7 @@ pub fn determinant(m: anytype) f32 {
         }
     }
 
-    var det: f32 = 0;
+    var det: f64 = 0;
 
     if (m.len == 2) {
         det = m[0][0] * m[1][1] - m[0][1] * m[1][0];
@@ -134,11 +134,11 @@ fn typeSubmatrix(comptime t: type) type {
     };
 }
 
-fn minor(m: anytype, row: u32, col: u32) f32 {
+fn minor(m: anytype, row: u32, col: u32) f64 {
     return determinant(submatrix(m, row, col));
 }
 
-fn cofactor(m: anytype, row: u32, col: u32) f32 {
+fn cofactor(m: anytype, row: u32, col: u32) f64 {
     if ((row + col) % 2 == 0) {
         return minor(m, row, col);
     } else {
@@ -167,7 +167,7 @@ pub fn inverse(m: Matrix) Matrix {
     return n;
 }
 
-pub fn translation(x: f32, y: f32, z: f32) Matrix {
+pub fn translation(x: f64, y: f64, z: f64) Matrix {
     return .{
         .{ 1, 0, 0, x },
         .{ 0, 1, 0, y },
@@ -176,7 +176,7 @@ pub fn translation(x: f32, y: f32, z: f32) Matrix {
     };
 }
 
-pub fn scaling(x: f32, y: f32, z: f32) Matrix {
+pub fn scaling(x: f64, y: f64, z: f64) Matrix {
     return .{
         .{ x, 0, 0, 0 },
         .{ 0, y, 0, 0 },
@@ -185,7 +185,7 @@ pub fn scaling(x: f32, y: f32, z: f32) Matrix {
     };
 }
 
-pub fn rotationX(r: f32) Matrix {
+pub fn rotationX(r: f64) Matrix {
     return .{
         .{ 1, 0, 0, 0 },
         .{ 0, @cos(r), -@sin(r), 0 },
@@ -194,7 +194,7 @@ pub fn rotationX(r: f32) Matrix {
     };
 }
 
-pub fn rotationY(r: f32) Matrix {
+pub fn rotationY(r: f64) Matrix {
     return .{
         .{ @cos(r), 0, @sin(r), 0 },
         .{ 0, 1, 0, 0 },
@@ -203,7 +203,7 @@ pub fn rotationY(r: f32) Matrix {
     };
 }
 
-pub fn rotationZ(r: f32) Matrix {
+pub fn rotationZ(r: f64) Matrix {
     return .{
         .{ @cos(r), -@sin(r), 0, 0 },
         .{ @sin(r), @cos(r), 0, 0 },
@@ -212,7 +212,7 @@ pub fn rotationZ(r: f32) Matrix {
     };
 }
 
-pub fn shearing(xy: f32, xz: f32, yx: f32, yz: f32, zx: f32, zy: f32) Matrix {
+pub fn shearing(xy: f64, xz: f64, yx: f64, yz: f64, zx: f64, zy: f64) Matrix {
     return .{
         .{ 1, xy, xz, 0 },
         .{ yx, 1, yz, 0 },
