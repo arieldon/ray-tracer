@@ -2,6 +2,7 @@ const std = @import("std");
 const expect = std.testing.expect;
 const expectEqual = std.testing.expectEqual;
 const cnv = @import("canvas.zig");
+const con = @import("cone.zig");
 const cub = @import("cube.zig");
 const cyl = @import("cylinder.zig");
 const int = @import("intersection.zig");
@@ -24,6 +25,7 @@ pub const World = struct {
     planes: std.ArrayList(pln.Plane),
     cubes: std.ArrayList(cub.Cube),
     cylinders: std.ArrayList(cyl.Cylinder),
+    cones: std.ArrayList(con.Cone),
     allocator: std.mem.Allocator,
 
     pub fn init(allocator: std.mem.Allocator) World {
@@ -36,6 +38,7 @@ pub const World = struct {
             .planes = std.ArrayList(pln.Plane).init(allocator),
             .cubes = std.ArrayList(cub.Cube).init(allocator),
             .cylinders = std.ArrayList(cyl.Cylinder).init(allocator),
+            .cones = std.ArrayList(con.Cone).init(allocator),
             .allocator = allocator,
         };
     }
@@ -63,6 +66,7 @@ pub const World = struct {
         self.planes.deinit();
         self.cubes.deinit();
         self.cylinders.deinit();
+        self.cones.deinit();
     }
 
     pub fn containsSphere(self: World, s: sph.Sphere) bool {
@@ -103,6 +107,7 @@ pub fn intersectWorld(xs: *std.ArrayList(int.Intersection), w: World, r: ray.Ray
     for (w.planes.items) |plane| pln.intersect(xs, plane, r) catch unreachable;
     for (w.cubes.items) |cube| cub.intersect(xs, cube, r) catch unreachable;
     for (w.cylinders.items) |cylinder| cyl.intersect(xs, cylinder, r) catch unreachable;
+    for (w.cones.items) |cone| con.intersect(xs, cone, r) catch unreachable;
 
     // Call hit() only to sort the intersections.
     _ = int.hit(xs.items);
