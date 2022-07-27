@@ -89,10 +89,10 @@ pub fn prepareComputations(i: Intersection, r: ray.Ray) Computation {
     // Precompute reflection vector.
     comps.reflect = tup.reflect(r.direction, comps.normal);
 
-    // Set default value for n1 and n2. Use prepareComputationsForRefraction()
-    // to calculate these values.
-    comps.n1 = 1.0;
-    comps.n2 = 1.0;
+    // Leave n1 and n2 undefined. Use prepareComputationsForRefraction() to
+    // calculate these values.
+    comps.n1 = undefined;
+    comps.n2 = undefined;
 
     return comps;
 }
