@@ -5,8 +5,7 @@ pub fn main() !void {
     const allocator = std.heap.page_allocator;
 
     const cone = rt.con.Cone{
-        .shape = .{
-            .shape_type = .cone,
+        .common_attrs = .{
             .transform = rt.mat.rotationX(-std.math.pi / 6.0),
         },
         .minimum = -2.0,

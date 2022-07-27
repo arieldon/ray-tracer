@@ -7,7 +7,7 @@ const shp = @import("shape.zig");
 const tup = @import("tuple.zig");
 
 pub const Cube = struct {
-    shape: shp.Shape = .{ .shape_type = .cube },
+    common_attrs: shp.CommonShapeAttributes = .{},
 };
 
 const TMinMax = struct {
@@ -16,7 +16,7 @@ const TMinMax = struct {
 };
 
 pub fn intersect(ts: *std.ArrayList(int.Intersection), c: Cube, r: ray.Ray) !void {
-    const r_prime = ray.transform(r, mat.inverse(c.shape.transform));
+    const r_prime = ray.transform(r, mat.inverse(c.common_attrs.transform));
 
     const x = checkAxis(r_prime.origin[0], r_prime.direction[0]);
     const y = checkAxis(r_prime.origin[1], r_prime.direction[1]);
@@ -28,8 +28,8 @@ pub fn intersect(ts: *std.ArrayList(int.Intersection), c: Cube, r: ray.Ray) !voi
     if (tmin > tmax) return;
 
     try ts.appendSlice(&[_]int.Intersection{
-        .{ .t = tmin, .shape = c.shape, .normal = normalAt(c.shape, ray.position(r, tmin)) },
-        .{ .t = tmax, .shape = c.shape, .normal = normalAt(c.shape, ray.position(r, tmax)) },
+        .{ .t = tmin, .shape_attrs = c.common_attrs, .normal = normalAt(c, ray.position(r, tmin)) },
+        .{ .t = tmax, .shape_attrs = c.common_attrs, .normal = normalAt(c, ray.position(r, tmax)) },
     });
 }
 
@@ -50,8 +50,8 @@ fn checkAxis(origin: f64, direction: f64) TMinMax {
     return if (tmin > tmax) .{ .tmin = tmax, .tmax = tmin } else .{ .tmin = tmin, .tmax = tmax };
 }
 
-pub fn normalAt(shape: shp.Shape, world_point: tup.Point) tup.Vector {
-    const inverse = mat.inverse(shape.transform);
+pub fn normalAt(c: Cube, world_point: tup.Point) tup.Vector {
+    const inverse = mat.inverse(c.common_attrs.transform);
     const object_point = mat.mul(inverse, world_point);
 
     const x = @fabs(object_point[0]);
@@ -142,7 +142,7 @@ test "the normal on the surface of a cube" {
         .{ .point = tup.Point{1, 1, 1, 1}, .normal = tup.Vector{1, 0, 0, 0} },
         .{ .point = tup.Point{-1, -1, -1, 1}, .normal = tup.Vector{-1, 0, 0, 0} },
     }) |x| {
-        const normal = normalAt(c.shape, x.point);
+        const normal = normalAt(c, x.point);
         try expectEqual(x.normal, normal);
     }
 }

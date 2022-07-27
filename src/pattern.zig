@@ -21,8 +21,12 @@ pub const Pattern = struct {
         return self.color_map(self, point);
     }
 
-    pub fn atShape(self: *const Self, shape: shp.Shape, world_point: tup.Point) cnv.Color {
-        const object_point = mat.mul(mat.inverse(shape.transform), world_point);
+    pub fn atShape(
+        self: *const Self,
+        shape_attrs: shp.CommonShapeAttributes,
+        world_point: tup.Point,
+    ) cnv.Color {
+        const object_point = mat.mul(mat.inverse(shape_attrs.transform), world_point);
         const pattern_point = mat.mul(mat.inverse(self.transform), object_point);
         return self.at(pattern_point);
     }
@@ -85,14 +89,13 @@ test "a striple pattern alternates in x" {
 
 test "stripes with an object transformation" {
     const sphere = sph.Sphere{
-        .shape = .{
-            .shape_type = .sphere,
+        .common_attrs = .{
             .transform = mat.scaling(2, 2, 2),
         },
     };
     const pattern = Pattern{ .a = white, .b = black, .color_map = stripe };
 
-    const c = pattern.atShape(sphere.shape, tup.point(1.5, 0, 0));
+    const c = pattern.atShape(sphere.common_attrs, tup.point(1.5, 0, 0));
     try expectEqual(c, white);
 }
 
@@ -105,14 +108,13 @@ test "stripes with a pattern transformation" {
         .color_map = stripe,
     };
 
-    const c = pattern.atShape(sphere.shape, tup.point(1.5, 0, 0));
+    const c = pattern.atShape(sphere.common_attrs, tup.point(1.5, 0, 0));
     try expectEqual(c, white);
 }
 
 test "stripes with both an object and a pattern transformation" {
     const sphere = sph.Sphere{
-        .shape = .{
-            .shape_type = .sphere,
+        .common_attrs = .{
             .transform = mat.scaling(2, 2, 2)
         }
     };
@@ -123,7 +125,7 @@ test "stripes with both an object and a pattern transformation" {
         .color_map = stripe,
     };
 
-    const c = pattern.atShape(sphere.shape, tup.point(2.5, 0, 0));
+    const c = pattern.atShape(sphere.common_attrs, tup.point(2.5, 0, 0));
     try expectEqual(c, white);
 }
 

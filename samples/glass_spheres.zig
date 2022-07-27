@@ -5,8 +5,7 @@ pub fn main() !void {
     const allocator = std.heap.page_allocator;
 
     const background = rt.pln.Plane{
-        .shape = .{
-            .shape_type = .plane,
+        .common_attrs = .{
             .transform = rt.mat.mul(rt.mat.translation(0, 0, 10), rt.mat.rotationX(std.math.pi / 2.0)),
             .material = .{
                 .ambient = 0.8,
@@ -22,8 +21,7 @@ pub fn main() !void {
     };
 
     const outer_sphere = rt.sph.Sphere{
-        .shape = .{
-            .shape_type = .sphere,
+        .common_attrs = .{
             .material = .{
                 .cast_shadow = false,
                 .color = rt.cnv.Color{1, 1, 1},
@@ -39,8 +37,7 @@ pub fn main() !void {
     };
 
     const inner_sphere = rt.sph.Sphere{
-        .shape = .{
-            .shape_type = .sphere,
+        .common_attrs = .{
             .transform = rt.mat.scaling(0.5, 0.5, 0.5),
             .material = .{
                 .color = rt.cnv.Color{1, 1, 1},

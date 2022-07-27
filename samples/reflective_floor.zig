@@ -9,8 +9,7 @@ pub fn main() !void {
     const field_of_view = std.math.pi / 3.0;
 
     const floor = rt.pln.Plane{
-        .shape = .{
-            .shape_type = .plane,
+        .common_attrs = .{
             .material = .{
                 .pattern = .{
                     .a = rt.cnv.Color{0, 0, 0},
@@ -23,8 +22,7 @@ pub fn main() !void {
     };
 
     const sphere = rt.sph.Sphere{
-        .shape = .{
-            .shape_type = .sphere,
+        .common_attrs = .{
             .material = .{ .color = rt.cnv.Color{1, 0.3, 0.25} },
             .transform = rt.mat.translation(0, 1, 0.5),
         },

@@ -10,7 +10,7 @@ pub fn main() !void {
     const pixel_size = wall_size / @intToFloat(f64, canvas_pixels);
     const half = wall_size / 2.0;
 
-    const sphere = rt.sph.sphere();
+    const sphere = rt.sph.Sphere{};
     const color = rt.cnv.color(1, 0, 0);
     const ray_origin = rt.tup.point(0, 0, -5);
 

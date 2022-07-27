@@ -6,8 +6,7 @@ pub fn main() !void {
 
     // Initialize a floor with a white and gray checker pattern.
     var floor = rt.pln.Plane{
-        .shape = .{
-            .shape_type = .plane,
+        .common_attrs = .{
             .material = .{
                 .ambient = 0.2,
                 .diffuse = 0.9,
@@ -20,7 +19,7 @@ pub fn main() !void {
             },
         },
     };
-    floor.shape.material.pattern.?.transform = rt.mat.mul(
+    floor.common_attrs.material.pattern.?.transform = rt.mat.mul(
         rt.mat.rotationY(0.3), rt.mat.scaling(0.25, 0.25, 0.25));
 
     // Define the big, reflective cylinder slightly above and to the right of
@@ -29,8 +28,7 @@ pub fn main() !void {
         .minimum = 0.0,
         .maximum = 0.75,
         .closed = true,
-        .shape = .{
-            .shape_type = .cylinder,
+        .common_attrs = .{
             .transform = rt.mat.mul(rt.mat.translation(-1, 0, 1), rt.mat.scaling(0.5, 1, 0.5)),
             .material = .{
                 .color = rt.cnv.Color{0, 0, 0.6},
@@ -47,8 +45,7 @@ pub fn main() !void {
         .minimum = 0.0,
         .maximum = 0.2,
         .closed = false,
-        .shape = .{
-            .shape_type = .cylinder,
+        .common_attrs = .{
             .transform = rt.mat.mul(rt.mat.translation(1, 0, 0), rt.mat.scaling(0.8, 1, 0.8)),
             .material = .{
                 .color = rt.cnv.Color{1, 1, 0.3},
@@ -62,8 +59,7 @@ pub fn main() !void {
     const b = rt.cyl.Cylinder{
         .minimum = 0.0,
         .maximum = 0.3,
-        .shape = .{
-            .shape_type = .cylinder,
+        .common_attrs = .{
             .transform = rt.mat.mul(rt.mat.translation(1, 0, 0), rt.mat.scaling(0.6, 1, 0.6)),
             .material = .{
                 .color = rt.cnv.Color{1, 0.9, 0.4},
@@ -77,8 +73,7 @@ pub fn main() !void {
     const c = rt.cyl.Cylinder{
         .minimum = 0.0,
         .maximum = 0.4,
-        .shape = .{
-            .shape_type = .cylinder,
+        .common_attrs = .{
             .transform = rt.mat.mul(rt.mat.translation(1, 0, 0), rt.mat.scaling(0.4, 1, 0.4)),
             .material = .{
                 .color = rt.cnv.Color{1, 0.8, 0.5},
@@ -93,8 +88,7 @@ pub fn main() !void {
         .minimum = 0.0,
         .maximum = 0.5,
         .closed = true,
-        .shape = .{
-            .shape_type = .cylinder,
+        .common_attrs = .{
             .transform = rt.mat.mul(rt.mat.translation(1, 0, 0), rt.mat.scaling(0.2, 1, 0.2)),
             .material = .{
                 .color = rt.cnv.Color{1, 0.7, 0.6},
@@ -111,8 +105,7 @@ pub fn main() !void {
         .minimum = 0.0,
         .maximum = 0.3,
         .closed = true,
-        .shape = .{
-            .shape_type = .cylinder,
+        .common_attrs = .{
             .transform = rt.mat.mul(rt.mat.translation(0, 0, -0.75), rt.mat.scaling(0.05, 1, 0.05)),
             .material = .{
                 .color = rt.cnv.Color{1, 0, 0},
@@ -127,8 +120,7 @@ pub fn main() !void {
         .minimum = 0.0,
         .maximum = 0.3,
         .closed = true,
-        .shape = .{
-            .shape_type = .cylinder,
+        .common_attrs = .{
             .transform = rt.mat.mul(
                 rt.mat.mul(rt.mat.translation(0, 0, -2.25), rt.mat.rotationY(-0.15)),
                 rt.mat.mul(rt.mat.translation(0, 0, 1.5), rt.mat.scaling(0.05, 1, 0.05))),
@@ -145,8 +137,7 @@ pub fn main() !void {
         .minimum = 0.0,
         .maximum = 0.3,
         .closed = true,
-        .shape = .{
-            .shape_type = .cylinder,
+        .common_attrs = .{
             .transform = rt.mat.mul(
                 rt.mat.mul(rt.mat.translation(0, 0, -2.25), rt.mat.rotationY(-0.3)),
                 rt.mat.mul(rt.mat.translation(0, 0, 1.5), rt.mat.scaling(0.05, 1, 0.05))),
@@ -163,8 +154,7 @@ pub fn main() !void {
         .minimum = 0.0,
         .maximum = 0.3,
         .closed = true,
-        .shape = .{
-            .shape_type = .cylinder,
+        .common_attrs = .{
             .transform = rt.mat.mul(
                 rt.mat.mul(rt.mat.translation(0, 0, -2.25), rt.mat.rotationY(-0.45)),
                 rt.mat.mul(rt.mat.translation(0, 0, 1.5), rt.mat.scaling(0.05, 1, 0.05))),
@@ -183,8 +173,7 @@ pub fn main() !void {
         .minimum = 0.0001,
         .maximum = 0.5,
         .closed = true,
-        .shape = .{
-            .shape_type = .cylinder,
+        .common_attrs = .{
             .transform = rt.mat.mul(rt.mat.translation(0, 0, -1.5), rt.mat.scaling(0.33, 1, 0.33)),
             .material = .{
                 .color = rt.cnv.Color{0.25, 0, 0},

@@ -5,8 +5,7 @@ pub fn main() !void {
     const allocator = std.heap.page_allocator;
 
     const cube = rt.cub.Cube{
-        .shape = .{
-            .shape_type = .cube,
+        .common_attrs = .{
             .transform = rt.mat.rotationY(std.math.pi / 4.0),
         },
     };

@@ -10,20 +10,25 @@ pub fn main() !void {
     const field_of_view = std.math.pi / 4.0;
 
     // Use a plane for the floor.
-    const floor = rt.pln.plane();
+    const floor = rt.pln.Plane{};
 
     // Use a plane for the backdrop.
-    var backdrop = rt.pln.plane();
-    backdrop.shape.transform = rt.mat.mul(
-        rt.mat.translation(0, 0, 3), rt.mat.rotationX(std.math.pi / 2.0));
+    const backdrop = rt.pln.Plane{
+        .common_attrs = .{
+            .transform = rt.mat.mul(rt.mat.translation(0, 0, 3), rt.mat.rotationX(std.math.pi / 2.0)),
+        },
+    };
 
     // Place a sphere on the plane.
-    var sphere = rt.sph.sphere();
-    sphere.shape.transform = rt.mat.translation(0, 1, 0.5);
-    sphere.shape.material = rt.mtl.Material{
-        .color = rt.cnv.color(0.1, 0.75, 1),
-        .diffuse = 0.7,
-        .specular = 0.3,
+    const sphere = rt.sph.Sphere{
+        .common_attrs = .{
+            .transform = rt.mat.translation(0, 1, 0.5),
+            .material = .{
+                .color = rt.cnv.color(0.1, 0.75, 1),
+                .diffuse = 0.7,
+                .specular = 0.3,
+            },
+        },
     };
 
     // Allocate world to hold light source and items.

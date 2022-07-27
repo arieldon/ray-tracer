@@ -47,13 +47,21 @@ pub const World = struct {
     fn defaultInit(allocator: std.mem.Allocator) !World {
         var w = World.init(allocator);
 
-        var s1 = sph.sphere();
-        s1.shape.material.color = cnv.color(0.8, 1.0, 0.6);
-        s1.shape.material.diffuse = 0.7;
-        s1.shape.material.specular = 0.2;
+        const s1 = sph.Sphere{
+            .common_attrs = .{
+                .material = .{
+                    .color = cnv.Color{0.8, 1.0, 0.6},
+                    .diffuse = 0.7,
+                    .specular = 0.2,
+                },
+            },
+        };
 
-        var s2 = sph.sphere();
-        s2.shape.transform = mat.scaling(0.5, 0.5, 0.5);
+        const s2 = sph.Sphere{
+            .common_attrs = .{
+                .transform = mat.scaling(0.5, 0.5, 0.5),
+            },
+        };
 
         // Add default spheres to the world.
         try w.spheres.appendSlice(&[_]sph.Sphere{ s1, s2 });
@@ -120,7 +128,7 @@ pub fn shadeHit(w: World, comps: int.Computation) cnv.Color {
 fn shadeHitInternal(w: World, comps: int.Computation, remaining: usize) cnv.Color {
     const shadowed = isShadowed(w, comps.over_point);
     const surface = mtl.lighting(
-        comps.shape,
+        comps.shape_attrs,
         w.light,
         comps.over_point,
         comps.eye,
@@ -133,7 +141,7 @@ fn shadeHitInternal(w: World, comps: int.Computation, remaining: usize) cnv.Colo
     const reflected = reflectedColorInternal(w, comps, remaining);
     const refracted = refractedColorInternal(w, comps, remaining);
 
-    const material = comps.shape.material;
+    const material = comps.shape_attrs.material;
     if (material.reflective > 0 and material.transparency > 0) {
         const reflectance = @splat(3, int.schlick(comps));
         return surface + reflected * reflectance +
@@ -178,7 +186,9 @@ pub fn isShadowed(w: World, p: tup.Point) bool {
     // Again, if the shadow ray intersects an object at some point in the
     // distance between the light source and the point, then the object lies
     // within a shadow.
-    if (int.hit(intersections.items)) |hit| return hit.shape.material.cast_shadow and hit.t < distance;
+    if (int.hit(intersections.items)) |hit| {
+        return hit.shape_attrs.material.cast_shadow and hit.t < distance;
+    }
     return false;
 }
 
@@ -194,7 +204,7 @@ fn reflectedColorInternal(w: World, comps: int.Computation, remaining: usize) cn
 
     // In this case, the ray intersects a nonreflective surface, so reflection
     // stops.
-    if (comps.shape.material.reflective == 0) return black;
+    if (comps.shape_attrs.material.reflective == 0) return black;
 
     const reflect_ray = ray.Ray{
         .origin = comps.over_point,
@@ -202,7 +212,7 @@ fn reflectedColorInternal(w: World, comps: int.Computation, remaining: usize) cn
     };
     const color = colorAtInternal(w, reflect_ray, remaining - 1);
 
-    return color * @splat(3, comps.shape.material.reflective);
+    return color * @splat(3, comps.shape_attrs.material.reflective);
 }
 
 pub fn refractedColor(w: World, comps: int.Computation) cnv.Color {
@@ -216,7 +226,7 @@ fn refractedColorInternal(w: World, comps: int.Computation, remaining: usize) cn
     if (remaining == 0) return black;
 
     // Stop if the ray hits a material through which light doesn't transmit.
-    if (comps.shape.material.transparency == 0) return black;
+    if (comps.shape_attrs.material.transparency == 0) return black;
 
     // Find the ratio of the first to the second refractive index.
     const n_ratio = comps.n1 / comps.n2;
@@ -245,7 +255,7 @@ fn refractedColorInternal(w: World, comps: int.Computation, remaining: usize) cn
     };
 
     const color = colorAtInternal(w, refract_ray, remaining - 1);
-    return color * @splat(3, comps.shape.material.transparency);
+    return color * @splat(3, comps.shape_attrs.material.transparency);
 }
 
 test "creating a world" {
@@ -267,15 +277,20 @@ test "the default world" {
         .intensity = cnv.Color{1, 1, 1},
     };
 
-    var s1 = sph.sphere();
-    s1.id = 0;
-    s1.shape.material.color = cnv.color(0.8, 1.0, 0.6);
-    s1.shape.material.diffuse = 0.7;
-    s1.shape.material.specular = 0.2;
-
-    var s2 = sph.sphere();
-    s2.id = 1;
-    s2.shape.transform = mat.scaling(0.5, 0.5, 0.5);
+    const s1 = sph.Sphere{
+        .common_attrs = .{
+            .material = .{
+                .color = cnv.Color{0.8, 1.0, 0.6},
+                .diffuse = 0.7,
+                .specular = 0.2,
+            },
+        },
+    };
+    const s2 = sph.Sphere{
+        .common_attrs = .{
+            .transform = mat.scaling(0.5, 0.5, 0.5),
+        },
+    };
 
     const w = try defaultWorld(std.testing.allocator);
     defer w.deinit();
@@ -308,7 +323,7 @@ test "shading an intersection" {
 
     const r = ray.ray(tup.point(0, 0, -5), tup.vector(0, 0, 1));
     const s = w.spheres.items[0];
-    const i = int.Intersection{ .t = 4, .shape = s.shape };
+    const i = int.Intersection{ .t = 4, .shape_attrs = s.common_attrs };
 
     const comps = int.prepareComputations(i, r);
     const c = shadeHit(w, comps);
@@ -328,8 +343,8 @@ test "shading an intersection from the inside" {
     const s = w.spheres.items[1];
     const i = int.Intersection{
         .t = 0.5,
-        .shape = s.shape,
-        .normal = sph.normalAt(s.shape, ray.position(r, 0.5)),
+        .shape_attrs = s.common_attrs,
+        .normal = sph.normalAt(s, ray.position(r, 0.5)),
     };
 
     const comps = int.prepareComputations(i, r);
@@ -363,15 +378,15 @@ test "the color with an intersection behind the ray" {
     defer w.deinit();
 
     var outer = &w.spheres.items[0];
-    outer.shape.material.ambient = 1;
+    outer.common_attrs.material.ambient = 1;
 
     var inner = &w.spheres.items[1];
-    inner.shape.material.ambient = 1;
+    inner.common_attrs.material.ambient = 1;
 
     const r = ray.ray(tup.point(0, 0, 0.75), tup.vector(0, 0, -1));
     const c = colorAt(w, r);
 
-    try expectEqual(c, inner.shape.material.color);
+    try expectEqual(c, inner.common_attrs.material.color);
 }
 
 test "there is no shadow when nothing is collinear with point and light" {
@@ -414,15 +429,18 @@ test "shadeHit() is given an intersection in shadow" {
     };
     defer w.deinit();
 
-    var s1 = sph.sphere();
+    const s1 = sph.Sphere{};
     try w.spheres.append(s1);
 
-    var s2 = sph.sphere();
-    s2.shape.transform = mat.translation(0, 0, 10);
+    const s2 = sph.Sphere{
+        .common_attrs = .{
+            .transform = mat.translation(0, 0, 10),
+        },
+    };
     try w.spheres.append(s2);
 
     const r = ray.ray(tup.point(0, 0, 5), tup.vector(0, 0, 1));
-    const i = int.Intersection{ .t = 4, .shape = s2.shape };
+    const i = int.Intersection{ .t = 4, .shape_attrs = s2.common_attrs };
 
     const comps = int.prepareComputations(i, r);
     const c = shadeHit(w, comps);
@@ -439,9 +457,9 @@ test "the reflected color for a nonreflective material" {
     };
 
     var sphere = &w.spheres.items[1];
-    sphere.shape.material.ambient = 1;
+    sphere.common_attrs.material.ambient = 1;
 
-    const i = int.Intersection{.t = 1, .shape = sphere.shape};
+    const i = int.Intersection{ .t = 1, .shape_attrs = sphere.common_attrs };
     const comps = int.prepareComputations(i, r);
 
     const color = reflectedColor(w, comps);
@@ -456,8 +474,7 @@ test "the reflected color for a reflective material" {
     defer w.deinit();
 
     const plane = pln.Plane{
-        .shape = .{
-            .shape_type = .plane,
+        .common_attrs = .{
             .material = .{ .reflective = 0.5 },
             .transform = mat.translation(0, -1, 0),
         }
@@ -470,8 +487,8 @@ test "the reflected color for a reflective material" {
     };
     const i = int.Intersection{
         .t = a,
-        .shape = plane.shape,
-        .normal = pln.normalAt(plane.shape, ray.position(r, a)),
+        .shape_attrs = plane.common_attrs,
+        .normal = pln.normalAt(plane, ray.position(r, a)),
     };
 
     const comps = int.prepareComputations(i, r);
@@ -487,8 +504,7 @@ test "shadeHit() with a reflective material" {
     defer w.deinit();
 
     const plane = pln.Plane{
-        .shape = .{
-            .shape_type = .plane,
+        .common_attrs = .{
             .material = .{ .reflective = 0.5 },
             .transform = mat.translation(0, -1, 0),
         }
@@ -501,8 +517,8 @@ test "shadeHit() with a reflective material" {
     };
     const i = int.Intersection{
         .t = a,
-        .shape = plane.shape,
-        .normal = pln.normalAt(plane.shape, ray.position(r, a)),
+        .shape_attrs = plane.common_attrs,
+        .normal = pln.normalAt(plane, ray.position(r, a)),
     };
 
     const comps = int.prepareComputations(i, r);
@@ -520,8 +536,7 @@ test "colorAt() with mutually reflective surfaces" {
     };
 
     const lower = pln.Plane{
-        .shape = .{
-            .shape_type = .plane,
+        .common_attrs = .{
             .material = .{ .reflective = 1 },
             .transform = mat.translation(0, -1, 0),
         },
@@ -529,8 +544,7 @@ test "colorAt() with mutually reflective surfaces" {
     try w.planes.append(lower);
 
     const upper = pln.Plane{
-        .shape = .{
-            .shape_type = .plane,
+        .common_attrs = .{
             .material = .{ .reflective = 1 },
             .transform = mat.translation(0, 1, 0),
         },
@@ -554,8 +568,7 @@ test "the reflected color at the maximum recursive depth" {
     defer w.deinit();
 
     const plane = pln.Plane{
-        .shape = .{
-            .shape_type = .plane,
+        .common_attrs = .{
             .material = .{ .reflective = 0.5 },
             .transform = mat.translation(0, -1, 0),
         },
@@ -568,7 +581,7 @@ test "the reflected color at the maximum recursive depth" {
     };
     const i = int.Intersection{
         .t = a,
-        .shape = plane.shape,
+        .shape_attrs = plane.common_attrs,
     };
 
     const comps = int.prepareComputations(i, r);
@@ -586,8 +599,8 @@ test "the refracted color with an opaque surface" {
         .direction = tup.vector(0, 0, 1),
     };
     const xs = &[_]int.Intersection{
-        .{ .t = 4, .shape = sphere.shape },
-        .{ .t = 6, .shape = sphere.shape },
+        .{ .t = 4, .shape_attrs = sphere.common_attrs },
+        .{ .t = 6, .shape_attrs = sphere.common_attrs },
     };
     const comps = int.prepareComputationsForRefraction(xs[0], r, xs);
 
@@ -600,15 +613,15 @@ test "the refactor color at the maximum recursive depth" {
     defer w.deinit();
 
     const sphere = &w.spheres.items[0];
-    sphere.shape.material.transparency = 1.0;
-    sphere.shape.material.refractive_index = 1.5;
+    sphere.common_attrs.material.transparency = 1.0;
+    sphere.common_attrs.material.refractive_index = 1.5;
     const r = ray.Ray{
         .origin = tup.point(0, 0, -5),
         .direction = tup.vector(0, 0, 1),
     };
     const xs = &[_]int.Intersection{
-        .{ .t = 4, .shape = sphere.shape },
-        .{ .t = 6, .shape = sphere.shape },
+        .{ .t = 4, .shape_attrs = sphere.common_attrs },
+        .{ .t = 6, .shape_attrs = sphere.common_attrs },
     };
     const comps = int.prepareComputationsForRefraction(xs[0], r, xs);
 
@@ -624,15 +637,15 @@ test "the refracted color under total internal reflection" {
     defer w.deinit();
 
     const sphere = &w.spheres.items[0];
-    sphere.shape.material.transparency = 1.0;
-    sphere.shape.material.refractive_index = 1.5;
+    sphere.common_attrs.material.transparency = 1.0;
+    sphere.common_attrs.material.refractive_index = 1.5;
     const r = ray.Ray{
         .origin = tup.point(0, 0, b),
         .direction = tup.vector(0, 1, 0),
     };
     const xs = &[_]int.Intersection{
-        .{ .t = -b, .shape = sphere.shape },
-        .{ .t = b, .shape = sphere.shape },
+        .{ .t = -b, .shape_attrs = sphere.common_attrs },
+        .{ .t = b, .shape_attrs = sphere.common_attrs },
     };
     const comps = int.prepareComputationsForRefraction(xs[1], r, xs);
 
@@ -645,26 +658,42 @@ test "the refracted color with a refracted ray" {
     defer w.deinit();
 
     const a = &w.spheres.items[0];
-    a.shape.material.ambient = 1.0;
-    a.shape.material.pattern = .{
+    a.common_attrs.material.ambient = 1.0;
+    a.common_attrs.material.pattern = .{
         .a = cnv.Color{1, 1, 1},
         .b = cnv.Color{0, 0, 0},
         .color_map = pat.testPattern,
     };
 
     const b = &w.spheres.items[1];
-    b.shape.material.transparency = 1.0;
-    b.shape.material.refractive_index = 1.5;
+    b.common_attrs.material.transparency = 1.0;
+    b.common_attrs.material.refractive_index = 1.5;
 
     const r = ray.Ray{
         .origin = tup.point(0, 0, 0.1),
         .direction = tup.vector(0, 1, 0),
     };
     const xs = &[_]int.Intersection{
-        .{ .t = -0.9899, .shape = a.shape, .normal = sph.normalAt(a.shape, ray.position(r, -0.9899)) },
-        .{ .t = -0.4899, .shape = b.shape, .normal = sph.normalAt(b.shape, ray.position(r, -0.4899)) },
-        .{ .t =  0.4899, .shape = b.shape, .normal = sph.normalAt(b.shape, ray.position(r, 0.4899)) },
-        .{ .t =  0.9899, .shape = a.shape, .normal = sph.normalAt(a.shape, ray.position(r, 0.9899)) },
+        .{
+            .t = -0.9899,
+            .shape_attrs = a.common_attrs,
+            .normal = sph.normalAt(a.*, ray.position(r, -0.9899)),
+        },
+        .{
+            .t = -0.4899,
+            .shape_attrs = b.common_attrs,
+            .normal = sph.normalAt(b.*, ray.position(r, -0.4899)),
+        },
+        .{
+            .t =  0.4899,
+            .shape_attrs = b.common_attrs,
+            .normal = sph.normalAt(b.*, ray.position(r, 0.4899)),
+        },
+        .{
+            .t =  0.9899,
+            .shape_attrs = a.common_attrs,
+            .normal = sph.normalAt(a.*, ray.position(r, 0.9899)),
+        },
     };
     const comps = int.prepareComputationsForRefraction(xs[2], r, xs);
 
@@ -680,8 +709,7 @@ test "shadeHit() with a transparent material" {
     defer w.deinit();
 
     const floor = pln.Plane{
-        .shape = .{
-            .shape_type = .plane,
+        .common_attrs = .{
             .material = .{
                 .transparency = 0.5,
                 .refractive_index = 1.5,
@@ -690,8 +718,7 @@ test "shadeHit() with a transparent material" {
         },
     };
     const ball = sph.Sphere{
-        .shape = .{
-            .shape_type = .sphere,
+        .common_attrs = .{
             .material = .{
                 .color = cnv.Color{1, 0, 0},
                 .ambient = 0.5
@@ -704,7 +731,11 @@ test "shadeHit() with a transparent material" {
         .direction = tup.vector(0, -b, b),
     };
     const xs = &[_]int.Intersection{
-        .{ .t = a, .shape = floor.shape, .normal = pln.normalAt(floor.shape, ray.position(r, a)) }
+        .{
+            .t = a,
+            .shape_attrs = floor.common_attrs,
+            .normal = pln.normalAt(floor, ray.position(r, a)),
+        }
     };
     const comps = int.prepareComputationsForRefraction(xs[0], r, xs);
 
@@ -727,8 +758,7 @@ test "shadeHit() with a reflective, transparent material" {
         .direction = tup.vector(0, -b, b),
     };
     const floor = pln.Plane{
-        .shape = .{
-            .shape_type = .plane,
+        .common_attrs = .{
             .transform = mat.translation(0, -1, 0),
             .material = .{
                 .reflective = 0.5,
@@ -738,8 +768,7 @@ test "shadeHit() with a reflective, transparent material" {
         },
     };
     const ball = sph.Sphere{
-        .shape = .{
-            .shape_type = .sphere,
+        .common_attrs = .{
             .transform = mat.translation(0, -3.5, -0.5),
             .material = .{
                 .color = cnv.Color{1, 0, 0},
@@ -752,7 +781,11 @@ test "shadeHit() with a reflective, transparent material" {
     try w.spheres.append(ball);
 
     const xs = &[_]int.Intersection{
-        .{ .t = a, .shape = floor.shape, .normal = pln.normalAt(floor.shape, ray.position(r, a)) }
+        .{
+            .t = a,
+            .shape_attrs = floor.common_attrs,
+            .normal = pln.normalAt(floor, ray.position(r, a)),
+        }
     };
     const comps = int.prepareComputationsForRefraction(xs[0], r, xs);
 

@@ -11,8 +11,7 @@ pub fn main() !void {
 
     // Initialize the checkered plane that serves as the bottom of the lake.
     var bottom = rt.pln.Plane{
-        .shape = .{
-            .shape_type = .plane,
+        .common_attrs = .{
             .transform = rt.mat.translation(0, -15, 0),
             .material = .{
                 .ambient = 1.0,
@@ -27,12 +26,11 @@ pub fn main() !void {
 
     // For some reason, the program crashes during runtime when initializing
     // this field in the constant directly above.
-    bottom.shape.material.pattern.?.transform = rt.mat.scaling(3, 3, 3);
+    bottom.common_attrs.material.pattern.?.transform = rt.mat.scaling(3, 3, 3);
 
     // Initialize transparent plane that acts as lake water.
     const water = rt.pln.Plane{
-        .shape = .{
-            .shape_type = .plane,
+        .common_attrs = .{
             .material = .{
                 .diffuse = 0.1,
                 .shininess = 300.0,
@@ -46,8 +44,7 @@ pub fn main() !void {
     // Initialize the far wall that simulates some sort of scenery in the
     // distance.
     var far = rt.pln.Plane{
-        .shape = .{
-            .shape_type = .plane,
+        .common_attrs = .{
             .transform = rt.mat.mul(rt.mat.translation(0, 0, 30), rt.mat.rotationX(std.math.pi / 2.0)),
             .material = .{
                 .transparency = 0.75,
@@ -60,7 +57,7 @@ pub fn main() !void {
             },
         },
     };
-    far.shape.material.pattern.?.transform = rt.mat.scaling(0.25, 0.25, 0.25);
+    far.common_attrs.material.pattern.?.transform = rt.mat.scaling(0.25, 0.25, 0.25);
 
     var world = rt.wrd.world(allocator);
     defer world.deinit();

@@ -19,8 +19,7 @@ pub fn main() !void {
         .color_map = rt.pat.stripe,
     };
     const floor = rt.pln.Plane{
-        .shape = rt.shp.Shape{
-            .shape_type = .plane,
+        .common_attrs = .{
             .material = .{ .pattern = pattern },
         },
     };
@@ -33,8 +32,7 @@ pub fn main() !void {
         .color_map = rt.pat.stripe,
     };
     const sphere = rt.sph.Sphere{
-        .shape = .{
-            .shape_type = .sphere,
+        .common_attrs = .{
             .material = .{ .pattern = rotated_pattern },
             .transform = rt.mat.translation(0, 1, 0),
         },

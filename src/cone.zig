@@ -8,14 +8,14 @@ const shp = @import("shape.zig");
 const tup = @import("tuple.zig");
 
 pub const Cone = struct {
-    shape: shp.Shape = .{ .shape_type = .cone },
+    common_attrs: shp.CommonShapeAttributes = .{},
     minimum: f64 = -std.math.inf_f64,
     maximum: f64 = std.math.inf_f64,
     closed: bool = false,
 };
 
 pub fn intersect(ts: *std.ArrayList(int.Intersection), cone: Cone, r: ray.Ray) !void {
-    const r_prime = ray.transform(r, mat.inverse(cone.shape.transform));
+    const r_prime = ray.transform(r, mat.inverse(cone.common_attrs.transform));
 
     const a = r_prime.direction[0] * r_prime.direction[0] -
               r_prime.direction[1] * r_prime.direction[1] +
@@ -39,7 +39,7 @@ pub fn intersect(ts: *std.ArrayList(int.Intersection), cone: Cone, r: ray.Ray) !
             const t = -c / (2 * b);
             try ts.append(int.Intersection{
                 .t = t,
-                .shape = cone.shape,
+                .shape_attrs = cone.common_attrs,
                 .normal = normalAt(cone, ray.position(r, t)),
             });
             try intersectCaps(ts, cone, r, r_prime);
@@ -61,7 +61,7 @@ pub fn intersect(ts: *std.ArrayList(int.Intersection), cone: Cone, r: ray.Ray) !
     if (cone.minimum < y0 and y0 < cone.maximum) {
         try ts.append(int.Intersection{
             .t = t0,
-            .shape = cone.shape,
+            .shape_attrs = cone.common_attrs,
             .normal = normalAt(cone, ray.position(r, t0)),
         });
     }
@@ -70,7 +70,7 @@ pub fn intersect(ts: *std.ArrayList(int.Intersection), cone: Cone, r: ray.Ray) !
     if (cone.minimum < y1 and y1 < cone.maximum) {
         try ts.append(int.Intersection{
             .t = t1,
-            .shape = cone.shape,
+            .shape_attrs = cone.common_attrs,
             .normal = normalAt(cone, ray.position(r, t1)),
         });
     }
@@ -92,7 +92,7 @@ fn intersectCaps(
     if (checkCap(r_prime, t_lower, cone.minimum)) {
         try ts.append(int.Intersection{
             .t = t_lower,
-            .shape = cone.shape,
+            .shape_attrs = cone.common_attrs,
             .normal = normalAt(cone, ray.position(r, t_lower)),
         });
     }
@@ -103,7 +103,7 @@ fn intersectCaps(
     if (checkCap(r_prime, t_upper, cone.maximum)) {
         try ts.append(int.Intersection{
             .t = t_upper,
-            .shape = cone.shape,
+            .shape_attrs = cone.common_attrs,
             .normal = normalAt(cone, ray.position(r, t_upper)),
         });
     }
@@ -118,7 +118,7 @@ fn checkCap(r: ray.Ray, t: f64, y: f64) bool {
 }
 
 pub fn normalAt(cone: Cone, world_point: tup.Point) tup.Vector {
-    const inverse = mat.inverse(cone.shape.transform);
+    const inverse = mat.inverse(cone.common_attrs.transform);
 
     var object_normal: tup.Vector = undefined;
     const object_point = mat.mul(inverse, world_point);
@@ -181,7 +181,6 @@ test "intersecting a cone with a ray parallel to one of its halves" {
 
 test "intersecting a cone's end caps" {
     const c = Cone{
-        .shape = .{ .shape_type = .cone },
         .minimum = -0.5,
         .maximum = 0.5,
         .closed = true,

@@ -21,8 +21,13 @@ pub fn main() !void {
     };
 
     // Create a purple sphere.
-    var sphere = rt.sph.sphere();
-    sphere.shape.material.color = rt.cnv.color(1, 0.2, 1);
+    const sphere = rt.sph.Sphere{
+        .common_attrs = .{
+            .material = .{
+                .color = rt.cnv.Color{1, 0.2, 1},
+            },
+        },
+    };
 
     // Create a canvas.
     var canvas = try rt.cnv.canvas(allocator, canvas_pixels, canvas_pixels);
@@ -47,10 +52,10 @@ pub fn main() !void {
             try rt.sph.intersect(&intersections, sphere, ray);
             if (rt.int.hit(intersections.items)) |hit| {
                 const point = rt.ray.position(ray, hit.t);
-                const normal = rt.sph.normalAt(hit.shape, point);
+                const normal = rt.sph.normalAt(sphere, point);
                 const eye = -ray.direction;
                 const color = rt.mtl.lighting(
-                    hit.shape,
+                    hit.shape_attrs,
                     light,
                     point,
                     eye,

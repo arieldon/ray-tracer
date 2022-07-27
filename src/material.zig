@@ -42,18 +42,18 @@ pub const Material = struct {
 
 // Use the Phong reflection model.
 pub fn lighting(
-        shape: shp.Shape,
-        light: lht.PointLight,
-        point: tup.Point,
-        eye: tup.Vector,
-        normal: tup.Vector,
-        in_shadow: bool,
+    shape_attrs: shp.CommonShapeAttributes,
+    light: lht.PointLight,
+    point: tup.Point,
+    eye: tup.Vector,
+    normal: tup.Vector,
+    in_shadow: bool,
 ) cnv.Color {
-    const material = shape.material;
+    const material = shape_attrs.material;
 
     var color: cnv.Color = undefined;
     if (material.pattern != null) {
-        color = material.pattern.?.atShape(shape, point);
+        color = material.pattern.?.atShape(shape_attrs, point);
     } else {
         color = material.color;
     }
@@ -124,7 +124,7 @@ test "lighting with the eye between the light and the surface" {
         .intensity = cnv.Color{1, 1, 1},
     };
     const in_shadow = false;
-    const result = lighting(sphere.shape, light, position, eyev, normalv, in_shadow);
+    const result = lighting(sphere.common_attrs, light, position, eyev, normalv, in_shadow);
     try expectEqual(result, cnv.color(1.9, 1.9, 1.9));
 }
 
@@ -139,7 +139,7 @@ test "lighting with the eye between light and surface, eye offset 45 degrees" {
         .intensity = cnv.Color{1, 1, 1},
     };
     const in_shadow = false;
-    const result = lighting(sphere.shape, light, position, eyev, normalv, in_shadow);
+    const result = lighting(sphere.common_attrs, light, position, eyev, normalv, in_shadow);
     try expectEqual(result, cnv.color(1.0, 1.0, 1.0));
 }
 
@@ -153,7 +153,7 @@ test "lighting with eye opposite surface, light offset 45 degrees" {
         .intensity = cnv.Color{1, 1, 1},
     };
     const in_shadow = false;
-    const result = lighting(sphere.shape, light, position, eyev, normalv, in_shadow);
+    const result = lighting(sphere.common_attrs, light, position, eyev, normalv, in_shadow);
     try expect(cnv.equal(result, cnv.color(0.7364, 0.7364, 0.7364)));
 }
 
@@ -168,7 +168,7 @@ test "lighting with eye in the path of the reflection vector" {
         .intensity = cnv.Color{1, 1, 1},
     };
     const in_shadow = false;
-    const result = lighting(sphere.shape, light, position, eyev, normalv, in_shadow);
+    const result = lighting(sphere.common_attrs, light, position, eyev, normalv, in_shadow);
     try expect(cnv.equal(result, cnv.color(1.6364, 1.6364, 1.6364)));
 }
 
@@ -182,7 +182,7 @@ test "lighting with the light behind the surface" {
         .intensity = cnv.Color{1, 1, 1},
     };
     const in_shadow = false;
-    const result = lighting(sphere.shape, light, position, eyev, normalv, in_shadow);
+    const result = lighting(sphere.common_attrs, light, position, eyev, normalv, in_shadow);
     try expectEqual(result, cnv.color(0.1, 0.1, 0.1));
 }
 
@@ -196,7 +196,7 @@ test "lighting with the surface in a shadow" {
         .intensity = cnv.Color{1, 1, 1},
     };
     const in_shadow = true;
-    const result = lighting(sphere.shape, light, position, eye, normal, in_shadow);
+    const result = lighting(sphere.common_attrs, light, position, eye, normal, in_shadow);
     try expectEqual(result, cnv.color(0.1, 0.1, 0.1));
 }
 
@@ -204,8 +204,7 @@ test "lighting with a pattern applied" {
     const white = cnv.Color{1, 1, 1};
     const black = cnv.Color{0, 0, 0};
     const sphere = sph.Sphere{
-        .shape = .{
-            .shape_type = .sphere,
+        .common_attrs = .{
             .material = .{
                 .pattern = pat.Pattern{
                     .a = white,
@@ -225,8 +224,8 @@ test "lighting with a pattern applied" {
         .intensity = cnv.Color{1, 1, 1},
     };
 
-    const c1 = lighting(sphere.shape, light, tup.point(0.9, 0, 0), eye, normal, false);
-    const c2 = lighting(sphere.shape, light, tup.point(1.1, 0, 0), eye, normal, false);
+    const c1 = lighting(sphere.common_attrs, light, tup.point(0.9, 0, 0), eye, normal, false);
+    const c2 = lighting(sphere.common_attrs, light, tup.point(1.1, 0, 0), eye, normal, false);
     try expectEqual(c1, cnv.color(1, 1, 1));
     try expectEqual(c2, cnv.color(0, 0, 0));
 }

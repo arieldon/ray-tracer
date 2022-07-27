@@ -8,14 +8,14 @@ const shp = @import("shape.zig");
 const tup = @import("tuple.zig");
 
 pub const Cylinder = struct {
-    shape: shp.Shape = .{ .shape_type = .cylinder },
+    common_attrs: shp.CommonShapeAttributes = .{},
     minimum: f64 = -std.math.inf_f64,
     maximum: f64 = std.math.inf_f64,
     closed: bool = false,
 };
 
 pub fn intersect(ts: *std.ArrayList(int.Intersection), cyl: Cylinder, r: ray.Ray) !void {
-    const r_prime = ray.transform(r, mat.inverse(cyl.shape.transform));
+    const r_prime = ray.transform(r, mat.inverse(cyl.common_attrs.transform));
 
     // Because the ray is parallel to the y-axis, it will not intersect the
     // walls of the cylinder at any point. It may however intersect its caps.
@@ -43,7 +43,7 @@ pub fn intersect(ts: *std.ArrayList(int.Intersection), cyl: Cylinder, r: ray.Ray
     if (cyl.minimum < y0 and y0 < cyl.maximum) {
         try ts.append(int.Intersection{
             .t = t0,
-            .shape = cyl.shape,
+            .shape_attrs = cyl.common_attrs,
             .normal = normalAt(cyl, ray.position(r, t0)),
         });
     }
@@ -52,7 +52,7 @@ pub fn intersect(ts: *std.ArrayList(int.Intersection), cyl: Cylinder, r: ray.Ray
     if (cyl.minimum < y1 and y1 < cyl.maximum) {
         try ts.append(int.Intersection{
             .t = t1,
-            .shape = cyl.shape,
+            .shape_attrs = cyl.common_attrs,
             .normal = normalAt(cyl, ray.position(r, t1)),
         });
     }
@@ -77,7 +77,7 @@ fn intersectCaps(
     if (checkCap(r_prime, t_lower)) {
         try ts.append(int.Intersection{
             .t = t_lower,
-            .shape = cyl.shape,
+            .shape_attrs = cyl.common_attrs,
             .normal = normalAt(cyl, ray.position(r, t_lower)),
         });
     }
@@ -88,7 +88,7 @@ fn intersectCaps(
     if (checkCap(r_prime, t_upper)) {
         try ts.append(int.Intersection{
             .t = t_upper,
-            .shape = cyl.shape,
+            .shape_attrs = cyl.common_attrs,
             .normal = normalAt(cyl, ray.position(r, t_upper)),
         });
     }
@@ -103,7 +103,7 @@ fn checkCap(r: ray.Ray, t: f64) bool {
 }
 
 pub fn normalAt(cyl: Cylinder, world_point: tup.Point) tup.Vector {
-    const inverse = mat.inverse(cyl.shape.transform);
+    const inverse = mat.inverse(cyl.common_attrs.transform);
 
     var object_normal: tup.Vector = undefined;
     const object_point = mat.mul(inverse, world_point);
@@ -185,7 +185,6 @@ test "normal vector on a cylinder" {
 
 test "intersecting a constrained cylinder" {
     const c = Cylinder{
-        .shape = .{ .shape_type = .cylinder },
         .minimum = 1.0,
         .maximum = 2.0,
     };
@@ -215,7 +214,6 @@ test "intersecting a constrained cylinder" {
 
 test "intersecting the caps of a closed cylinder" {
     const c = Cylinder{
-        .shape = .{ .shape_type = .cylinder },
         .minimum = 1.0,
         .maximum = 2.0,
         .closed = true,
@@ -247,7 +245,6 @@ test "intersecting the caps of a closed cylinder" {
 
 test "the normal vector on a cylinder's end caps" {
     const c = Cylinder{
-        .shape = .{ .shape_type = .cylinder },
         .minimum = 1.0,
         .maximum = 2.0,
         .closed = true,

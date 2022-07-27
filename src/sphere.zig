@@ -10,23 +10,8 @@ const shp = @import("shape.zig");
 const tup = @import("tuple.zig");
 
 pub const Sphere = struct {
-    shape: shp.Shape = .{ .shape_type = .sphere },
-    id: u8 = 0,
+    common_attrs: shp.CommonShapeAttributes = .{},
 };
-
-pub fn sphere() Sphere {
-    const static = struct {
-        var id: u8 = 0;
-    };
-
-    const value = static.id;
-    static.id += 1;
-
-    return .{
-        .shape = .{ .shape_type = .sphere },
-        .id = value,
-    };
-}
 
 pub fn intersect(ts: *std.ArrayList(int.Intersection), s: Sphere, r: ray.Ray) !void {
     // Transform ray instead of sphere because fundamentally it's the distance
@@ -34,7 +19,7 @@ pub fn intersect(ts: *std.ArrayList(int.Intersection), s: Sphere, r: ray.Ray) !v
     // technically remains a unit sphere, which preserves ease of use, but
     // transformations may still be applied to it to alter its appearance in
     // the scene.
-    const r_prime = ray.transform(r, mat.inverse(s.shape.transform));
+    const r_prime = ray.transform(r, mat.inverse(s.common_attrs.transform));
 
     // Calculate the vector from the center of the sphere to the origin of the
     // ray, where the sphere is a unit sphere and thus centered about the
@@ -67,14 +52,22 @@ pub fn intersect(ts: *std.ArrayList(int.Intersection), s: Sphere, r: ray.Ray) !v
         const t0 = (-b - @sqrt(discriminant)) / (2 * a);
         const t1 = (-b + @sqrt(discriminant)) / (2 * a);
         try ts.appendSlice(&[_]int.Intersection{
-            .{ .t = t0, .shape = s.shape, .normal = normalAt(s.shape, ray.position(r, t0)) },
-            .{ .t = t1, .shape = s.shape, .normal = normalAt(s.shape, ray.position(r, t1)) },
+            .{
+                .t = t0,
+                .shape_attrs = s.common_attrs,
+                .normal = normalAt(s, ray.position(r, t0))
+            },
+            .{
+                .t = t1,
+                .shape_attrs = s.common_attrs,
+                .normal = normalAt(s, ray.position(r, t1))
+            },
         });
     }
 }
 
-pub fn normalAt(shape: shp.Shape, world_point: tup.Point) tup.Vector {
-    const inverse = mat.inverse(shape.transform);
+pub fn normalAt(sphere: Sphere, world_point: tup.Point) tup.Vector {
+    const inverse = mat.inverse(sphere.common_attrs.transform);
 
     // Convert the point from world space to object space. Because the sphere
     // may be transformed -- skewed, translated, scaled, or what not -- in
@@ -104,12 +97,14 @@ pub fn normalAt(shape: shp.Shape, world_point: tup.Point) tup.Vector {
 pub fn equal(s: Sphere, t: Sphere) bool {
     // NOTE: This function intentionally avoids comparing sphere IDs. It only
     // compares their materials and transform matrices.
-    return std.meta.eql(s.shape.material, t.shape.material) and mat.equal(s.shape.transform, t.shape.transform);
+    const material_equality = std.meta.eql(s.common_attrs.material, t.common_attrs.material);
+    const transform_equality = mat.equal(s.common_attrs.transform, t.common_attrs.transform);
+    return material_equality and transform_equality;
 }
 
 test "a ray intersects a sphere at two points" {
     const r = ray.ray(tup.point(0, 0, -5), tup.vector(0, 0, 1));
-    const s = sphere();
+    const s = Sphere{};
     var xs = std.ArrayList(int.Intersection).init(std.testing.allocator);
     defer xs.deinit();
 
@@ -121,7 +116,7 @@ test "a ray intersects a sphere at two points" {
 
 test "a ray intersects a sphere at a tangent" {
     const r = ray.ray(tup.point(0, 1, -5), tup.vector(0, 0, 1));
-    const s = sphere();
+    const s = Sphere{};
     var xs = std.ArrayList(int.Intersection).init(std.testing.allocator);
     defer xs.deinit();
 
@@ -133,7 +128,7 @@ test "a ray intersects a sphere at a tangent" {
 
 test "a ray misses a sphere" {
     const r = ray.ray(tup.point(0, 2, -5), tup.vector(0, 0, 1));
-    const s = sphere();
+    const s = Sphere{};
     var xs = std.ArrayList(int.Intersection).init(std.testing.allocator);
     defer xs.deinit();
 
@@ -143,7 +138,7 @@ test "a ray misses a sphere" {
 
 test "a ray originates inside a sphere" {
     const r = ray.ray(tup.point(0, 0, 0), tup.vector(0, 0, 1));
-    const s = sphere();
+    const s = Sphere{};
     var xs = std.ArrayList(int.Intersection).init(std.testing.allocator);
     defer xs.deinit();
 
@@ -155,7 +150,7 @@ test "a ray originates inside a sphere" {
 
 test "a sphere is behind a ray" {
     const r = ray.ray(tup.point(0, 0, 5), tup.vector(0, 0, 1));
-    const s = sphere();
+    const s = Sphere{};
     var xs = std.ArrayList(int.Intersection).init(std.testing.allocator);
     defer xs.deinit();
 
@@ -167,32 +162,30 @@ test "a sphere is behind a ray" {
 
 test "intersect sets the object on the intersection" {
     const r = ray.ray(tup.point(0, 0, -5), tup.vector(0, 0, 1));
-    const s = sphere();
+    const s = Sphere{};
     var xs = std.ArrayList(int.Intersection).init(std.testing.allocator);
     defer xs.deinit();
 
     try intersect(&xs, s, r);
     try expectEqual(xs.items.len, 2);
-    try expectEqual(xs.items[0].shape, s.shape);
-    try expectEqual(xs.items[1].shape, s.shape);
+    try expectEqual(xs.items[0].shape_attrs, s.common_attrs);
+    try expectEqual(xs.items[1].shape_attrs, s.common_attrs);
 }
 
 test "a sphere's default transformation" {
-    const s = sphere();
-    try expectEqual(s.shape.transform, mat.identity);
+    const s = Sphere{};
+    try expectEqual(s.common_attrs.transform, mat.identity);
 }
 
 test "a changing a sphere's transformation" {
-    var s = sphere();
     const t = mat.translation(2, 3, 4);
-    s.shape.transform = t;
-    try expectEqual(s.shape.transform, t);
+    const s = Sphere{ .common_attrs = .{ .transform = t } };
+    try expectEqual(s.common_attrs.transform, t);
 }
 
 test "intersecting a scaled sphere with a ray" {
     const r = ray.ray(tup.point(0, 0, -5), tup.vector(0, 0, 1));
-    var s = sphere();
-    s.shape.transform = mat.scaling(2, 2, 2);
+    const s = Sphere{ .common_attrs = .{ .transform = mat.scaling(2, 2, 2) } };
 
     var xs = std.ArrayList(int.Intersection).init(std.testing.allocator);
     defer xs.deinit();
@@ -205,8 +198,7 @@ test "intersecting a scaled sphere with a ray" {
 
 test "intersecting a translated sphere with a ray" {
     const r = ray.ray(tup.point(0, 0, -5), tup.vector(0, 0, 1));
-    var s = sphere();
-    s.shape.transform = mat.translation(5, 0, 0);
+    const s = Sphere{ .common_attrs = .{ .transform = mat.translation(5, 0, 0) } };
 
     var xs = std.ArrayList(int.Intersection).init(std.testing.allocator);
     defer xs.deinit();
@@ -216,61 +208,62 @@ test "intersecting a translated sphere with a ray" {
 }
 
 test "the normal on a sphere at a point on the x axis" {
-    const s = sphere();
-    const n = normalAt(s.shape, tup.point(1, 0, 0));
+    const s = Sphere{};
+    const n = normalAt(s, tup.point(1, 0, 0));
     try expectEqual(n, tup.vector(1, 0, 0));
 }
 
 test "the normal on a sphere at a point on the y axis" {
-    const s = sphere();
-    const n = normalAt(s.shape, tup.point(0, 1, 0));
+    const s = Sphere{};
+    const n = normalAt(s, tup.point(0, 1, 0));
     try expectEqual(n, tup.vector(0, 1, 0));
 }
 
 test "the normal on a sphere at a point on the z axis" {
-    const s = sphere();
-    const n = normalAt(s.shape, tup.point(0, 0, 1));
+    const s = Sphere{};
+    const n = normalAt(s, tup.point(0, 0, 1));
     try expectEqual(n, tup.vector(0, 0, 1));
 }
 
 test "the normal on a sphere at a nonaxial point" {
-    const s = sphere();
+    const s = Sphere{};
     const a = @sqrt(3.0) / 3.0;
-    const n = normalAt(s.shape, tup.point(a, a, a));
+    const n = normalAt(s, tup.point(a, a, a));
     try expect(tup.equal(n, tup.vector(a, a, a)));
 }
 
 test "the normal is a normalized vector" {
-    const s = sphere();
+    const s = Sphere{};
     const a = @sqrt(3.0) / 3.0;
-    const n = normalAt(s.shape, tup.point(a, a, a));
+    const n = normalAt(s, tup.point(a, a, a));
     try expect(tup.equal(n, tup.normalize(n)));
 }
 
 test "computing the normal on a translated sphere" {
-    var s = sphere();
-    s.shape.transform = mat.translation(0, 1, 0);
-    const n = normalAt(s.shape, tup.point(0, 1.70711, -0.70711));
+    var s = Sphere{ .common_attrs = .{ .transform = mat.translation(0, 1, 0) } };
+    const n = normalAt(s, tup.point(0, 1.70711, -0.70711));
     try expect(tup.equal(n, tup.vector(0, 0.70711, -0.70711)));
 }
 
 test "computing the normal on a transformed sphere" {
-    var s = sphere();
-    s.shape.transform = mat.mul(mat.scaling(1, 0.5, 1), mat.rotationZ(std.math.pi / 5.0));
+    var s = Sphere{
+        .common_attrs = .{
+            .transform = mat.mul(mat.scaling(1, 0.5, 1), mat.rotationZ(std.math.pi / 5.0)),
+        },
+    };
     const a = @sqrt(2.0) / 2.0;
-    const n = normalAt(s.shape, tup.point(0, a, -a));
+    const n = normalAt(s, tup.point(0, a, -a));
     try expect(tup.equal(n, tup.vector(0, 0.97014, -0.24254)));
 }
 
 test "a sphere has a default material" {
-    const s = sphere();
+    const s = Sphere{};
     const m = mtl.Material{};
-    try expectEqual(m, s.shape.material);
+    try expectEqual(m, s.common_attrs.material);
 }
 
 test "a sphere may be assigned a material" {
-    var s = sphere();
-    var m = mtl.Material{ .ambient = 1 };
-    s.shape.material = m;
-    try expectEqual(m, s.shape.material);
+    const s = Sphere{ .common_attrs = .{ .material = .{ .ambient = 1 } } };
+    const m = mtl.Material{ .ambient = 1 };
+    try expectEqual(m, s.common_attrs.material);
 }
