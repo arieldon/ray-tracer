@@ -29,7 +29,7 @@ pub inline fn intersections(xs: *std.ArrayList(Intersection), new: []Intersectio
     try xs.appendSlice(new);
 }
 
-pub fn hit(xs: []Intersection) ?Intersection {
+pub fn sortIntersections(xs: []Intersection) void {
     const static = struct {
         fn cmp(context: void, a: Intersection, b: Intersection) bool {
             _ = context;
@@ -37,7 +37,10 @@ pub fn hit(xs: []Intersection) ?Intersection {
         }
     };
     std.sort.sort(Intersection, xs, {}, comptime static.cmp);
+}
 
+pub fn hit(xs: []Intersection) ?Intersection {
+    sortIntersections(xs);
     for (xs) |x| if (x.t >= 0) return x;
     return null;
 }

@@ -117,8 +117,7 @@ pub fn intersectWorld(xs: *std.ArrayList(int.Intersection), w: World, r: ray.Ray
     for (w.cylinders.items) |cylinder| cyl.intersect(xs, cylinder, r) catch unreachable;
     for (w.cones.items) |cone| con.intersect(xs, cone, r) catch unreachable;
 
-    // Call hit() only to sort the intersections.
-    _ = int.hit(xs.items);
+    int.sortIntersections(xs.items);
 }
 
 pub fn shadeHit(w: World, comps: int.Computation) cnv.Color {
