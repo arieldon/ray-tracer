@@ -5,6 +5,7 @@ pub const cnv = @import("canvas.zig");
 pub const con = @import("cone.zig");
 pub const cub = @import("cube.zig");
 pub const cyl = @import("cylinder.zig");
+pub const grp = @import("group.zig");
 pub const int = @import("intersection.zig");
 pub const lht = @import("light.zig");
 pub const mat = @import("matrix.zig");
