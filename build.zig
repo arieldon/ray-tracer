@@ -23,6 +23,7 @@ pub fn build(b: *std.build.Builder) void {
         .{ .bin_name = "cube", .source_path = "samples/cube.zig" },
         .{ .bin_name = "cylinder-world", .source_path = "samples/cylinder_world.zig" },
         .{ .bin_name = "cone", .source_path = "samples/cone.zig" },
+        .{ .bin_name = "hexagon-group", .source_path = "samples/hexagon_group.zig" },
     }) |sample| {
         // Construct the sample.
         const exe = b.addExecutable(sample.bin_name, sample.source_path);
