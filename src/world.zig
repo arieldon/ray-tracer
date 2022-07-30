@@ -14,6 +14,7 @@ const pat = @import("pattern.zig");
 const pln = @import("plane.zig");
 const ray = @import("ray.zig");
 const sph = @import("sphere.zig");
+const tri = @import("triangle.zig");
 const tup = @import("tuple.zig");
 
 // Set limit for number of recursive calls or ray casts allowed to calculate
@@ -27,6 +28,7 @@ pub const World = struct {
     cubes: std.ArrayList(cub.Cube),
     cylinders: std.ArrayList(cyl.Cylinder),
     cones: std.ArrayList(con.Cone),
+    triangles: std.ArrayList(tri.Triangle),
     groups: std.ArrayList(grp.Group),
     allocator: std.mem.Allocator,
 
@@ -41,6 +43,7 @@ pub const World = struct {
             .cubes = std.ArrayList(cub.Cube).init(allocator),
             .cylinders = std.ArrayList(cyl.Cylinder).init(allocator),
             .cones = std.ArrayList(con.Cone).init(allocator),
+            .triangles = std.ArrayList(tri.Triangle).init(allocator),
             .groups = std.ArrayList(grp.Group).init(allocator),
             .allocator = allocator,
         };
@@ -78,6 +81,7 @@ pub const World = struct {
         self.cubes.deinit();
         self.cylinders.deinit();
         self.cones.deinit();
+        self.triangles.deinit();
         self.groups.deinit();
     }
 
@@ -120,6 +124,7 @@ pub fn intersectWorld(xs: *std.ArrayList(int.Intersection), w: World, r: ray.Ray
     for (w.cubes.items) |cube| cub.intersect(xs, cube, r) catch unreachable;
     for (w.cylinders.items) |cylinder| cyl.intersect(xs, cylinder, r) catch unreachable;
     for (w.cones.items) |cone| con.intersect(xs, cone, r) catch unreachable;
+    for (w.triangles.items) |triangle| tri.intersect(xs, triangle, r) catch unreachable;
     for (w.groups.items) |group| grp.intersect(xs, group, r) catch unreachable;
 
     int.sortIntersections(xs.items);

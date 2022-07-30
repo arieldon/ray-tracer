@@ -15,6 +15,7 @@ pub const pln = @import("plane.zig");
 pub const ray = @import("ray.zig");
 pub const shp = @import("shape.zig");
 pub const sph = @import("sphere.zig");
+pub const tri = @import("triangle.zig");
 pub const trm = @import("transformation.zig");
 pub const tup = @import("tuple.zig");
 pub const wrd = @import("world.zig");
