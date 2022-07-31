@@ -9,6 +9,7 @@ const Face = tri.Triangle;
 const ParserCommand = enum {
     /// Define a new vertex.
     vertex,
+
     /// Define a new face, where a face consists of three points that form a
     /// triangle.
     face,
@@ -18,30 +19,30 @@ const ParserError = error {
     InvalidCommandArity,
 };
 
-// TODO Rename this to ObjFile and create a separate struct named Parser to
-// manage state in parseObjFile().
-const Parser = struct {
+const ObjFile = struct {
     vertices: std.ArrayList(Vertex),
     faces: std.ArrayList(Face),
     number_of_ignored_commands: usize = 0,
 
-    pub fn deinit(self: *Parser) void {
+    pub fn deinit(self: *ObjFile) void {
         self.vertices.deinit();
         self.faces.deinit();
     }
 };
 
-pub fn parseObjFile(allocator: std.mem.Allocator, file: std.fs.File) !Parser {
-    var parser = Parser{
+pub fn parseObjFile(allocator: std.mem.Allocator, file: std.fs.File) !ObjFile {
+    // FIXME What if there are two spaces in between parameters?
+
+    var obj = ObjFile{
         .vertices = std.ArrayList(Vertex).init(allocator),
         .faces = std.ArrayList(Face).init(allocator),
     };
-    errdefer parser.deinit();
+    errdefer obj.deinit();
 
     // In OBJ file format, index count begins from 1 instead of 0. Fill the
     // zeroth slot of the list of vertices with a sentinel -- it shouldn't be
     // referenced at any point.
-    try parser.vertices.append(undefined);
+    try obj.vertices.append(undefined);
 
     var contents = try file.reader().readAllAlloc(allocator, std.math.maxInt(usize));
     defer allocator.free(contents);
@@ -77,7 +78,7 @@ pub fn parseObjFile(allocator: std.mem.Allocator, file: std.fs.File) !Parser {
                 command = .face;
             } else {
                 // Ignore invalid or unsupported commands silently.
-                parser.number_of_ignored_commands += 1;
+                obj.number_of_ignored_commands += 1;
                 continue :iterate_contents;
             }
 
@@ -100,7 +101,7 @@ pub fn parseObjFile(allocator: std.mem.Allocator, file: std.fs.File) !Parser {
                     }
 
                     if (vertex_component != 3) return ParserError.InvalidCommandArity;
-                    try parser.vertices.append(vertex);
+                    try obj.vertices.append(vertex);
                 },
                 .face => {
                     var point_number: usize = 0;
@@ -116,17 +117,17 @@ pub fn parseObjFile(allocator: std.mem.Allocator, file: std.fs.File) !Parser {
                     }
 
                     if (point_number != 3) return ParserError.InvalidCommandArity;
-                    try parser.faces.append(Face.init(
-                        parser.vertices.items[point_indeces[0]],
-                        parser.vertices.items[point_indeces[1]],
-                        parser.vertices.items[point_indeces[2]]));
+                    try obj.faces.append(Face.init(
+                        obj.vertices.items[point_indeces[0]],
+                        obj.vertices.items[point_indeces[1]],
+                        obj.vertices.items[point_indeces[2]]));
                 }
             }
         }
     }
 
     // NOTE Caller owns returned memory.
-    return parser;
+    return obj;
 }
 
 test "ignoring unrecognized lines" {
@@ -134,31 +135,31 @@ test "ignoring unrecognized lines" {
     const file = try std.fs.cwd().openFile("foo.txt", .{});
     defer file.close();
 
-    var parser = try parseObjFile(std.testing.allocator, file);
-    defer parser.deinit();
+    var obj = try parseObjFile(std.testing.allocator, file);
+    defer obj.deinit();
 
-    try expectEqual(parser.number_of_ignored_commands, 5);
+    try expectEqual(obj.number_of_ignored_commands, 5);
 }
 
 test "vertex records" {
     const file = try std.fs.cwd().openFile("vertex_records.txt", .{});
     defer file.close();
 
-    var parser = try parseObjFile(std.testing.allocator, file);
-    defer parser.deinit();
+    var obj = try parseObjFile(std.testing.allocator, file);
+    defer obj.deinit();
 
-    try expectEqual(parser.vertices.items[1], tup.point(-1, 1, 0));
-    try expectEqual(parser.vertices.items[2], tup.point(-1, 0.5, 0));
-    try expectEqual(parser.vertices.items[3], tup.point(1, 0, 0));
-    try expectEqual(parser.vertices.items[4], tup.point(1, 1, 0));
+    try expectEqual(obj.vertices.items[1], tup.point(-1, 1, 0));
+    try expectEqual(obj.vertices.items[2], tup.point(-1, 0.5, 0));
+    try expectEqual(obj.vertices.items[3], tup.point(1, 0, 0));
+    try expectEqual(obj.vertices.items[4], tup.point(1, 1, 0));
 }
 
 test "parsing triangle faces" {
     const file = try std.fs.cwd().openFile("triangle_faces.txt", .{});
     defer file.close();
 
-    var parser = try parseObjFile(std.testing.allocator, file);
-    defer parser.deinit();
+    var obj = try parseObjFile(std.testing.allocator, file);
+    defer obj.deinit();
 
     const p1 = tup.point(-1, 1, 0);
     const p2 = tup.point(-1, 0, 0);
@@ -168,10 +169,10 @@ test "parsing triangle faces" {
     const t0 = Face.init(p1, p2, p3);
     const t1 = Face.init(p1, p3, p4);
 
-    try expectEqual(parser.vertices.items[1], p1);
-    try expectEqual(parser.vertices.items[2], p2);
-    try expectEqual(parser.vertices.items[3], p3);
-    try expectEqual(parser.vertices.items[4], p4);
-    try expectEqual(parser.faces.items[0], t0);
-    try expectEqual(parser.faces.items[1], t1);
+    try expectEqual(obj.vertices.items[1], p1);
+    try expectEqual(obj.vertices.items[2], p2);
+    try expectEqual(obj.vertices.items[3], p3);
+    try expectEqual(obj.vertices.items[4], p4);
+    try expectEqual(obj.faces.items[0], t0);
+    try expectEqual(obj.faces.items[1], t1);
 }
