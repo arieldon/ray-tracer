@@ -9,13 +9,15 @@ const ParserCommand = enum {
     vertex,
 };
 
-const ParserError = enum {
+const ParserError = error {
     InvalidParametersToCommand,
 };
 
+// TODO Rename this to ObjFile and create a separate struct named Parser to
+// manage state in parseObjFile().
 const Parser = struct {
     vertices: std.ArrayList(Vertex),
-    number_of_ignored_lines: usize = 0,
+    number_of_ignored_commands: usize = 0,
 
     pub fn deinit(self: *Parser) void {
         self.vertices.deinit();
@@ -39,28 +41,49 @@ pub fn parseObjFile(allocator: std.mem.Allocator, file: std.fs.File) !Parser {
     var line_start: usize = 0;
     iterate_contents: for (contents) |contents_character, contents_index| {
         if (contents_character == '\n') {
+            // Increment copy of index in contents to include newline character.
             const line_end = contents_index + 1;
             const line = contents[line_start..line_end];
 
-            var literal_start = 0;
-            var literal_end: usize =
+            // Define variables and separate command.
+            var command_start: usize = 0;
+            var command_end: usize =
                 for (line) |literal_character, line_index| {
                     if (literal_character == ' ') break line_index;
                 } else 0;
-            var literal = line[literal_start..literal_end];
+            var command_string = line[command_start..command_end];
 
+            // Parse command.
             var command: ParserCommand = undefined;
-            if (std.mem.eql(u8, literal, "v")) {
+            if (std.mem.eql(u8, command_string, "v")) {
                 command = .vertex;
             } else {
                 // Ignore invalid or unsupported commands silently.
-                parser.number_of_ignored_lines += 1;
+                parser.number_of_ignored_commands += 1;
                 continue :iterate_contents;
             }
 
-            literal_start = literal_end;
+            // Parse and handle command parameters.
+            var literal_start: usize = command_end + 1;
+            var literal_end: usize = undefined;
             switch (command) {
-                .vertex => {},
+                .vertex => {
+                    var vertex_component: usize = 0;
+                    var vertex = tup.point(undefined, undefined, undefined);
+                    for (line[literal_start..]) |literal_character, literal_index| {
+                        if (literal_character == ' ' or literal_character == '\n') {
+                            literal_end = command_end + 1 + literal_index;
+                            vertex[vertex_component] = try std.fmt.parseFloat(
+                                f64,
+                                line[literal_start..literal_end]);
+                            literal_start = literal_end + 1;
+                            vertex_component += 1;
+                        }
+                    }
+
+                    if (vertex_component != 3) return Parser.InvalidParametersToCommand;
+                    try parser.vertices.append(vertex);
+                },
             }
 
             line_start = contents_index + 1;
@@ -79,7 +102,7 @@ test "ignoring unrecognized lines" {
     var parser = try parseObjFile(std.testing.allocator, file);
     defer parser.deinit();
 
-    try expectEqual(parser.number_of_ignored_lines, 5);
+    try expectEqual(parser.number_of_ignored_commands, 5);
 }
 
 test "vertex records" {
@@ -89,7 +112,6 @@ test "vertex records" {
     var parser = try parseObjFile(std.testing.allocator, file);
     defer parser.deinit();
 
-    try expectEqual(parser.vertices.items[0], undefined);
     try expectEqual(parser.vertices.items[1], tup.point(-1, 1, 0));
     try expectEqual(parser.vertices.items[2], tup.point(-1, 0.5, 0));
     try expectEqual(parser.vertices.items[3], tup.point(1, 0, 0));
