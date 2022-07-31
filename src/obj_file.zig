@@ -151,7 +151,7 @@ fn triangulatePolygon(obj: *ObjFile, vertex_indeces: []usize) !void {
 
 test "ignoring unrecognized lines" {
     // This file contains nonsense.
-    const file = try std.fs.cwd().openFile("foo.txt", .{});
+    const file = try std.fs.cwd().openFile("foo.obj", .{});
     defer file.close();
 
     var obj = try parseObjFile(std.testing.allocator, file);
@@ -161,7 +161,7 @@ test "ignoring unrecognized lines" {
 }
 
 test "vertex records" {
-    const file = try std.fs.cwd().openFile("vertex_records.txt", .{});
+    const file = try std.fs.cwd().openFile("vertex_records.obj", .{});
     defer file.close();
 
     var obj = try parseObjFile(std.testing.allocator, file);
@@ -174,7 +174,7 @@ test "vertex records" {
 }
 
 test "parsing triangle faces" {
-    const file = try std.fs.cwd().openFile("triangle_faces.txt", .{});
+    const file = try std.fs.cwd().openFile("triangle_faces.obj", .{});
     defer file.close();
 
     var obj = try parseObjFile(std.testing.allocator, file);
@@ -197,7 +197,7 @@ test "parsing triangle faces" {
 }
 
 test "triangulating polygons" {
-    const file = try std.fs.cwd().openFile("triangulating_polygons.txt", .{});
+    const file = try std.fs.cwd().openFile("triangulating_polygons.obj", .{});
     defer file.close();
 
     var obj = try parseObjFile(std.testing.allocator, file);
