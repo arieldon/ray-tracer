@@ -104,23 +104,29 @@ pub fn parseObjFile(allocator: std.mem.Allocator, file: std.fs.File) !ObjFile {
                     try obj.vertices.append(vertex);
                 },
                 .face => {
-                    var point_number: usize = 0;
-                    var point_indeces = [_]usize{ undefined, undefined, undefined };
+                    var vertex_indeces = try std.ArrayList(usize).initCapacity(allocator, 3);
+                    defer vertex_indeces.deinit();
+
                     for (line[literal_start..]) |literal_character, literal_index| {
                         if (literal_character == ' ' or literal_character == '\n') {
                             literal_end = command_end + 1 + literal_index;
-                            point_indeces[point_number] = try std.fmt.parseInt(
+                            const vertex_index = try std.fmt.parseInt(
                                 usize, line[literal_start..literal_end], 10);
+                            try vertex_indeces.append(vertex_index);
                             literal_start = literal_end + 1;
-                            point_number += 1;
                         }
                     }
 
-                    if (point_number != 3) return ParserError.InvalidCommandArity;
-                    try obj.faces.append(Face.init(
-                        obj.vertices.items[point_indeces[0]],
-                        obj.vertices.items[point_indeces[1]],
-                        obj.vertices.items[point_indeces[2]]));
+                    if (vertex_indeces.items.len < 3) {
+                        return ParserError.InvalidCommandArity;
+                    } else if (vertex_indeces.items.len > 3) {
+                        try triangulatePolygon(&obj, vertex_indeces.items);
+                    } else {
+                        try obj.faces.append(Face.init(
+                            obj.vertices.items[vertex_indeces.items[0]],
+                            obj.vertices.items[vertex_indeces.items[1]],
+                            obj.vertices.items[vertex_indeces.items[2]]));
+                    }
                 }
             }
         }
@@ -128,6 +134,19 @@ pub fn parseObjFile(allocator: std.mem.Allocator, file: std.fs.File) !ObjFile {
 
     // NOTE Caller owns returned memory.
     return obj;
+}
+
+/// Convert some convex polygon to a set of triangles, where a convex polygon
+/// is a polygon whose interior angles are all less than or equal to 180
+/// degrees.
+fn triangulatePolygon(obj: *ObjFile, vertex_indeces: []usize) !void {
+    std.debug.assert(vertex_indeces.len > 3);
+    for (vertex_indeces[1..vertex_indeces.len]) |_, index| {
+        try obj.faces.append(Face.init(
+            obj.vertices.items[vertex_indeces[0]],
+            obj.vertices.items[vertex_indeces[index]],
+            obj.vertices.items[vertex_indeces[index + 1]]));
+    }
 }
 
 test "ignoring unrecognized lines" {
@@ -175,4 +194,28 @@ test "parsing triangle faces" {
     try expectEqual(obj.vertices.items[4], p4);
     try expectEqual(obj.faces.items[0], t0);
     try expectEqual(obj.faces.items[1], t1);
+}
+
+test "triangulating polygons" {
+    const file = try std.fs.cwd().openFile("triangulating_polygons.txt", .{});
+    defer file.close();
+
+    var obj = try parseObjFile(std.testing.allocator, file);
+    defer obj.deinit();
+
+    const t0 = Face.init(tup.point(-1, 1, 0), tup.point(-1, 0, 0), tup.point(1, 0, 0));
+    const t1 = Face.init(tup.point(-1, 1, 0), tup.point(1, 0, 0), tup.point(1, 1, 0));
+    const t2 = Face.init(tup.point(-1, 1, 0), tup.point(1, 1, 0), tup.point(0, 2, 0));
+
+    try expectEqual(t0.p0, obj.vertices.items[1]);
+    try expectEqual(t0.p1, obj.vertices.items[2]);
+    try expectEqual(t0.p2, obj.vertices.items[3]);
+
+    try expectEqual(t1.p0, obj.vertices.items[1]);
+    try expectEqual(t1.p1, obj.vertices.items[3]);
+    try expectEqual(t1.p2, obj.vertices.items[4]);
+
+    try expectEqual(t2.p0, obj.vertices.items[1]);
+    try expectEqual(t2.p1, obj.vertices.items[4]);
+    try expectEqual(t2.p2, obj.vertices.items[5]);
 }
