@@ -1,8 +1,11 @@
 const std = @import("std");
 const expect = std.testing.expect;
 const expectEqual = std.testing.expectEqual;
-const tup = @import("tuple.zig");
+const grp = @import("group.zig");
+const mat = @import("matrix.zig");
 const tri = @import("triangle.zig");
+const tup = @import("tuple.zig");
+const wrd = @import("world.zig");
 
 const Vertex = tup.Point;
 const Face = tri.Triangle;
@@ -33,6 +36,27 @@ const ObjFile = struct {
     groups: std.StringHashMap(Group),
 
     number_of_ignored_commands: usize = 0,
+
+    /// Convert the parsed result of an OBJ file to a group of shapes that the
+    /// ray tracer can render.
+    pub fn toShapeGroup(self: *ObjFile, world_allocator: std.mem.Allocator) !grp.Group {
+        var obj_group = grp.Group.init(world_allocator, mat.identity);
+
+        // Append faces without an explicitly defined group to the general list
+        // of triangles of struct `World`.
+        try obj_group.triangles.appendSlice(self.faces.items);
+
+        // Append faces of each named group from OBJ file to a unique group in
+        // the world.
+        var iter = self.groups.valueIterator();
+        while (iter.next()) |faces| {
+            var subgroup = grp.Group.init(world_allocator, mat.identity);
+            try subgroup.triangles.appendSlice(faces.items);
+            try obj_group.subgroups.append(subgroup);
+        }
+
+        return obj_group;
+    }
 
     pub fn deinit(self: *ObjFile) void {
         self.vertices.deinit();
@@ -288,4 +312,44 @@ test "triangles in groups" {
     try expectEqual(t1.p0, obj.vertices.items[1]);
     try expectEqual(t1.p1, obj.vertices.items[3]);
     try expectEqual(t1.p2, obj.vertices.items[4]);
+}
+
+test "converting an OBJ file to a group" {
+    const file = try std.fs.cwd().openFile("triangles.obj", .{});
+    defer file.close();
+
+    // Parse OBJ file.
+    var obj = try parseObjFile(std.testing.allocator, file);
+    defer obj.deinit();
+
+    // Initialize world.
+    var world = wrd.world(std.testing.allocator);
+    defer world.deinit();
+
+    // Convert contents of OBJ file to group for world.
+    var obj_group = try obj.toShapeGroup(world.allocator);
+    defer obj_group.deinit();
+
+    // Add this group from the OBJ file to the world.
+    try world.groups.append(obj_group);
+
+    // Ensure all instances of faces not designated to a named group match from
+    // OBJ file.
+    const world_group = &world.groups.items[0];
+    try expectEqual(world_group.triangles.items, obj.faces.items);
+    try expectEqual(obj_group.triangles.items, obj.faces.items);
+
+    std.debug.print("\n", .{});
+    var i: usize = 0;
+    var iter = obj.groups.valueIterator();
+    while (iter.next()) |obj_named_group| : (i += 1) {
+        const world_subgroup = &world_group.subgroups.items[i];
+
+        std.debug.print("WORLD: {any}\n", .{world_subgroup.triangles.items});
+        std.debug.print("  OBJ: {any}\n", .{obj_named_group.items});
+
+        // try expectEqual(world_subgroup.triangles.items, obj_named_group.items);
+
+        std.debug.print("---\n", .{});
+    }
 }
