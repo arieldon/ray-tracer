@@ -58,8 +58,8 @@ fn createHexagonEdge() rt.cyl.Cylinder {
 
 fn createHexagonSide(allocator: std.mem.Allocator) !rt.grp.Group {
     var side = rt.grp.Group.init(allocator, rt.mat.identity);
-    try side.shapes.append(rt.shp.Shape{ .sphere = createHexagonCorner() });
-    try side.shapes.append(rt.shp.Shape{ .cylinder = createHexagonEdge() });
+    try side.spheres.append(createHexagonCorner());
+    try side.cylinders.append(createHexagonEdge());
     return side;
 }
 

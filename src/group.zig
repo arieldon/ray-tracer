@@ -10,6 +10,7 @@ const pln = @import("plane.zig");
 const ray = @import("ray.zig");
 const shp = @import("shape.zig");
 const sph = @import("sphere.zig");
+const tri = @import("triangle.zig");
 const tup = @import("tuple.zig");
 
 /// Store shapes together to transform them as a single unit.
@@ -17,8 +18,13 @@ pub const Group = struct {
     /// Transform to apply to all shapes in the group.
     transform: mat.Matrix = mat.identity,
 
-    /// Store a dynamic array of shapes in the group.
-    shapes: std.ArrayList(shp.Shape),
+    /// Store a dynamic array of each type of shape in the group.
+    spheres: std.ArrayList(sph.Sphere),
+    planes: std.ArrayList(pln.Plane),
+    cubes: std.ArrayList(cub.Cube),
+    cylinders: std.ArrayList(cyl.Cylinder),
+    cones: std.ArrayList(con.Cone),
+    triangles: std.ArrayList(tri.Triangle),
 
     /// Store a dynamic array of subgroups.
     subgroups: std.ArrayList(Group),
@@ -26,54 +32,59 @@ pub const Group = struct {
     pub fn init(allocator: std.mem.Allocator, transform: mat.Matrix) Group {
         return .{
             .transform = transform,
-            .shapes = std.ArrayList(shp.Shape).init(allocator),
+            .spheres = std.ArrayList(sph.Sphere).init(allocator),
+            .planes = std.ArrayList(pln.Plane).init(allocator),
+            .cubes = std.ArrayList(cub.Cube).init(allocator),
+            .cylinders = std.ArrayList(cyl.Cylinder).init(allocator),
+            .cones = std.ArrayList(con.Cone).init(allocator),
+            .triangles = std.ArrayList(tri.Triangle).init(allocator),
             .subgroups = std.ArrayList(Group).init(allocator),
         };
     }
 
     pub fn deinit(self: *Group) void {
-        self.shapes.deinit();
+        self.spheres.deinit();
+        self.planes.deinit();
+        self.cubes.deinit();
+        self.cylinders.deinit();
+        self.cones.deinit();
+        self.triangles.deinit();
         for (self.subgroups.items) |*subgroup| subgroup.deinit();
         self.subgroups.deinit();
     }
 };
 
 pub fn intersect(ts: *std.ArrayList(int.Intersection), g: Group, r: ray.Ray) !void {
-    for (g.shapes.items) |shape| {
-        switch (shape) {
-            .cone => |cone| {
-                var transformed_cone = cone;
-                transformed_cone.common_attrs.transform = mat.mul(
-                    g.transform, cone.common_attrs.transform);
-                try con.intersect(ts, transformed_cone, r);
-            },
-            .cube => |cube| {
-                var transformed_cube = cube;
-                transformed_cube.common_attrs.transform = mat.mul(
-                    g.transform, cube.common_attrs.transform);
-                try cub.intersect(ts, transformed_cube, r);
-            },
-            .cylinder => |cylinder| {
-                var transformed_cylinder = cylinder;
-                transformed_cylinder.common_attrs.transform = mat.mul(
-                    g.transform, cylinder.common_attrs.transform);
-                try cyl.intersect(ts, transformed_cylinder, r);
-            },
-            .plane => |plane| {
-                var transformed_plane = plane;
-                transformed_plane.common_attrs.transform = mat.mul(
-                    g.transform, plane.common_attrs.transform);
-                try pln.intersect(ts, transformed_plane, r);
-            },
-            .sphere => |sphere| {
-                var transformed_sphere = sphere;
-                transformed_sphere.common_attrs.transform = mat.mul(
-                    g.transform, sphere.common_attrs.transform);
-                try sph.intersect(ts, transformed_sphere, r);
-            },
-        }
+    for (g.cones.items) |cone| {
+        var transformed_cone = cone;
+        transformed_cone.common_attrs.transform = mat.mul(
+            g.transform, cone.common_attrs.transform);
+        try con.intersect(ts, transformed_cone, r);
     }
-
+    for (g.cubes.items) |cube| {
+        var transformed_cube = cube;
+        transformed_cube.common_attrs.transform = mat.mul(
+            g.transform, cube.common_attrs.transform);
+        try cub.intersect(ts, transformed_cube, r);
+    }
+    for (g.cylinders.items) |cylinder| {
+        var transformed_cylinder = cylinder;
+        transformed_cylinder.common_attrs.transform = mat.mul(
+            g.transform, cylinder.common_attrs.transform);
+        try cyl.intersect(ts, transformed_cylinder, r);
+    }
+    for (g.planes.items) |plane| {
+        var transformed_plane = plane;
+        transformed_plane.common_attrs.transform = mat.mul(
+            g.transform, plane.common_attrs.transform);
+        try pln.intersect(ts, transformed_plane, r);
+    }
+    for (g.spheres.items) |sphere| {
+        var transformed_sphere = sphere;
+        transformed_sphere.common_attrs.transform = mat.mul(
+            g.transform, sphere.common_attrs.transform);
+        try sph.intersect(ts, transformed_sphere, r);
+    }
     for (g.subgroups.items) |*subgroup| {
         // Apply transform of encompassing group to this subgroup.
         const original_transform = subgroup.transform;
@@ -121,9 +132,9 @@ test "intersecting a ray with a nonempty group" {
     var xs = std.ArrayList(int.Intersection).init(std.testing.allocator);
     defer xs.deinit();
 
-    try g.shapes.append(shp.Shape{ .sphere = s1 });
-    try g.shapes.append(shp.Shape{ .sphere = s2 });
-    try g.shapes.append(shp.Shape{ .sphere = s3 });
+    try g.spheres.append(s1);
+    try g.spheres.append(s2);
+    try g.spheres.append(s3);
     try intersect(&xs, g, r);
 
     try expectEqual(xs.items.len, 4);
@@ -150,7 +161,7 @@ test "intersecting a transformed group" {
     var xs = std.ArrayList(int.Intersection).init(std.testing.allocator);
     defer xs.deinit();
 
-    try g.shapes.append(shp.Shape{ .sphere = s });
+    try g.spheres.append(s);
     try intersect(&xs, g, r);
     try expectEqual(xs.items.len, 2);
 }
