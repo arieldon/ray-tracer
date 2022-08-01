@@ -66,7 +66,7 @@ pub fn parseObjFile(allocator: std.mem.Allocator, file: std.fs.File) !ObjFile {
     var contents = try file.reader().readAllAlloc(allocator, std.math.maxInt(usize));
     defer allocator.free(contents);
 
-    var current_group_name: ?[]const u8 = null;
+    var group_name: ?[]const u8 = null;
     var line_start: usize = 0;
     iterate_contents: for (contents) |contents_character, contents_index| {
         if (contents_character == '\n') {
@@ -76,11 +76,7 @@ pub fn parseObjFile(allocator: std.mem.Allocator, file: std.fs.File) !ObjFile {
             defer line_start = contents_index + 1;
 
             // Handle blank lines.
-            if (contents_index - line_start == 0) {
-                // Blank lines end groups of faces.
-                current_group_name = null;
-                continue :iterate_contents;
-            }
+            if (contents_index - line_start == 0) continue :iterate_contents;
 
             // Increment copy of index in contents to include newline character.
             const line_end = contents_index + 1;
@@ -128,19 +124,6 @@ pub fn parseObjFile(allocator: std.mem.Allocator, file: std.fs.File) !ObjFile {
 
                     if (vertex_component != 3) return ParserError.InvalidCommandArity;
                     try obj.vertices.append(vertex);
-
-                    // Assign face to group if specified.
-                    if (current_group_name) |group_name| {
-                        const entry = try obj.groups.getOrPut(try allocator.dupe(u8, group_name));
-                        if (!entry.found_existing) {
-                            // Initialize array list for new sequence of faces
-                            // in this group.
-                            entry.value_ptr.* = Group.init(allocator);
-                        }
-
-                        // Append face to named group.
-                        try entry.value_ptr.append(obj.faces.items[obj.faces.items.len - 1]);
-                    }
                 },
                 .face => {
                     var vertex_indeces = try std.ArrayList(usize).initCapacity(allocator, 3);
@@ -155,36 +138,37 @@ pub fn parseObjFile(allocator: std.mem.Allocator, file: std.fs.File) !ObjFile {
                             literal_start = literal_end + 1;
                         }
                     }
+                    if (vertex_indeces.items.len < 3) return ParserError.InvalidCommandArity;
 
-                    if (vertex_indeces.items.len < 3) {
-                        return ParserError.InvalidCommandArity;
-                    } else if (vertex_indeces.items.len > 3) {
-                        try triangulatePolygon(&obj, vertex_indeces.items);
+                    // Define list of faces to which to append this new face.
+                    // By default, assign it to the standard list of faces.
+                    // However, assign it the corresponding named group instead
+                    // if specified.
+                    var faces: *std.ArrayList(Face) = &obj.faces;
+                    if (group_name) |group| {
+                        const entry = try obj.groups.getOrPut(try allocator.dupe(u8, group));
+                        if (!entry.found_existing) entry.value_ptr.* = Group.init(allocator);
+                        faces = entry.value_ptr;
+                    }
+
+                    if (vertex_indeces.items.len > 3) {
+                        // A face with more than 3 vertices represents a
+                        // polygon. Because the ray tracer cannot render all
+                        // polygons directly, it's necessary to convert these
+                        // polygons into triangles.
+                        try triangulatePolygon(faces, obj.vertices.items, vertex_indeces.items);
                     } else {
-                        try obj.faces.append(Face.init(
+                        try faces.append(Face.init(
                             obj.vertices.items[vertex_indeces.items[0]],
                             obj.vertices.items[vertex_indeces.items[1]],
                             obj.vertices.items[vertex_indeces.items[2]]));
-                    }
-
-                    // Assign face to group if specified.
-                    if (current_group_name) |group_name| {
-                        const entry = try obj.groups.getOrPut(try allocator.dupe(u8, group_name));
-                        if (!entry.found_existing) {
-                            // Initialize array list for new sequence of faces
-                            // in this group.
-                            entry.value_ptr.* = Group.init(allocator);
-                        }
-
-                        // Append face to named group.
-                        try entry.value_ptr.append(obj.faces.items[obj.faces.items.len - 1]);
                     }
                 },
                 .group => {
                     for (line[literal_start..]) |literal_character, literal_index| {
                         if (literal_character == ' ' or literal_character == '\n') {
                             literal_end = command_end + 1 + literal_index;
-                            current_group_name = line[literal_start..literal_end];
+                            group_name = line[literal_start..literal_end];
                             break;
                         }
                     } else return ParserError.InvalidCommandArity;
@@ -200,13 +184,13 @@ pub fn parseObjFile(allocator: std.mem.Allocator, file: std.fs.File) !ObjFile {
 /// Convert some convex polygon to a set of triangles, where a convex polygon
 /// is a polygon whose interior angles are all less than or equal to 180
 /// degrees.
-fn triangulatePolygon(obj: *ObjFile, vertex_indeces: []usize) !void {
+fn triangulatePolygon(faces: *std.ArrayList(Face), vertices: []Vertex, vertex_indeces: []usize) !void {
     std.debug.assert(vertex_indeces.len > 3);
     for (vertex_indeces[1..vertex_indeces.len]) |_, index| {
-        try obj.faces.append(Face.init(
-            obj.vertices.items[vertex_indeces[0]],
-            obj.vertices.items[vertex_indeces[index]],
-            obj.vertices.items[vertex_indeces[index + 1]]));
+        try faces.append(Face.init(
+            vertices[vertex_indeces[0]],
+            vertices[vertex_indeces[index]],
+            vertices[vertex_indeces[index + 1]]));
     }
 }
 
