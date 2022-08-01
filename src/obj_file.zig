@@ -31,10 +31,18 @@ const ParserError = error {
 const ObjFile = struct {
     allocator: std.mem.Allocator,
 
+    /// Store all vertices declared in OBJ file.
     vertices: std.ArrayList(Vertex),
+
+    /// Store any faces declared outside of a named group. In other words, this
+    /// list serves as the default group for faces.
     faces: std.ArrayList(Face),
+
+    /// Store faces declared under a named group in a separate list for this
+    /// group.
     groups: std.StringHashMap(Group),
 
+    /// Track number of unsuppored commands encountered while parsing.
     number_of_ignored_commands: usize = 0,
 
     /// Convert the parsed result of an OBJ file to a group of shapes that the
