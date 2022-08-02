@@ -85,6 +85,12 @@ pub fn intersect(ts: *std.ArrayList(int.Intersection), g: Group, r: ray.Ray) !vo
             g.transform, sphere.common_attrs.transform);
         try sph.intersect(ts, transformed_sphere, r);
     }
+    for (g.triangles.items) |triangle| {
+        var transformed_triangle = triangle;
+        transformed_triangle.common_attrs.transform = mat.mul(
+            g.transform, triangle.common_attrs.transform);
+        try tri.intersect(ts, transformed_triangle, r);
+    }
     for (g.subgroups.items) |*subgroup| {
         // Apply transform of encompassing group to this subgroup.
         const original_transform = subgroup.transform;
