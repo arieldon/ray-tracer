@@ -125,7 +125,7 @@ pub fn intersectWorld(xs: *std.ArrayList(int.Intersection), w: World, r: ray.Ray
     for (w.cylinders.items) |cylinder| cyl.intersect(xs, cylinder, r) catch unreachable;
     for (w.cones.items) |cone| con.intersect(xs, cone, r) catch unreachable;
     for (w.triangles.items) |triangle| tri.intersect(xs, triangle, r) catch unreachable;
-    for (w.groups.items) |group| grp.intersect(xs, group, r) catch unreachable;
+    for (w.groups.items) |*group| grp.intersect(xs, group, r) catch unreachable;
 
     int.sortIntersections(xs.items);
 }

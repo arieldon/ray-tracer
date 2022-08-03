@@ -54,50 +54,27 @@ pub const Group = struct {
     }
 };
 
-pub fn intersect(ts: *std.ArrayList(int.Intersection), g: Group, r: ray.Ray) !void {
-    for (g.cones.items) |cone| {
-        var transformed_cone = cone;
-        transformed_cone.common_attrs.transform = mat.mul(
-            g.transform, cone.common_attrs.transform);
-        try con.intersect(ts, transformed_cone, r);
-    }
-    for (g.cubes.items) |cube| {
-        var transformed_cube = cube;
-        transformed_cube.common_attrs.transform = mat.mul(
-            g.transform, cube.common_attrs.transform);
-        try cub.intersect(ts, transformed_cube, r);
-    }
-    for (g.cylinders.items) |cylinder| {
-        var transformed_cylinder = cylinder;
-        transformed_cylinder.common_attrs.transform = mat.mul(
-            g.transform, cylinder.common_attrs.transform);
-        try cyl.intersect(ts, transformed_cylinder, r);
-    }
-    for (g.planes.items) |plane| {
-        var transformed_plane = plane;
-        transformed_plane.common_attrs.transform = mat.mul(
-            g.transform, plane.common_attrs.transform);
-        try pln.intersect(ts, transformed_plane, r);
-    }
-    for (g.spheres.items) |sphere| {
-        var transformed_sphere = sphere;
-        transformed_sphere.common_attrs.transform = mat.mul(
-            g.transform, sphere.common_attrs.transform);
-        try sph.intersect(ts, transformed_sphere, r);
-    }
-    for (g.triangles.items) |triangle| {
-        var transformed_triangle = triangle;
-        transformed_triangle.common_attrs.transform = mat.mul(
-            g.transform, triangle.common_attrs.transform);
-        try tri.intersect(ts, transformed_triangle, r);
-    }
+pub fn intersect(ts: *std.ArrayList(int.Intersection), g: *Group, r: ray.Ray) !void {
+    for (g.spheres.items) |sphere|
+        try sph.intersect(ts, transformShape(sph.Sphere, sphere, g.transform), r);
+    for (g.planes.items) |plane|
+        try pln.intersect(ts, transformShape(pln.Plane, plane, g.transform), r);
+    for (g.cubes.items) |cube|
+        try cub.intersect(ts, transformShape(cub.Cube, cube, g.transform), r);
+    for (g.cylinders.items) |cylinder|
+        try cyl.intersect(ts, transformShape(cyl.Cylinder, cylinder, g.transform), r);
+    for (g.cones.items) |cone|
+        try con.intersect(ts, transformShape(con.Cone, cone, g.transform), r);
+    for (g.triangles.items) |triangle|
+        try tri.intersect(ts, transformShape(tri.Triangle, triangle, g.transform), r);
+
     for (g.subgroups.items) |*subgroup| {
         // Apply transform of encompassing group to this subgroup.
         const original_transform = subgroup.transform;
         subgroup.transform = mat.mul(g.transform, original_transform);
 
         // FIXME Resolve error set instead of crashing.
-        intersect(ts, subgroup.*, r) catch unreachable;
+        intersect(ts, subgroup, r) catch unreachable;
 
         // Restore the original transform of the subgroup for the next test for
         // intersections.
@@ -105,6 +82,13 @@ pub fn intersect(ts: *std.ArrayList(int.Intersection), g: Group, r: ray.Ray) !vo
     }
 
     int.sortIntersections(ts.items);
+}
+
+fn transformShape(comptime T: type, shape: T, transform: mat.Matrix) T {
+    var transformed_shape = shape;
+    transformed_shape.common_attrs.transform = mat.mul(
+        transform, shape.common_attrs.transform);
+    return transformed_shape;
 }
 
 test "intersecting a ray with an empty group" {
@@ -119,7 +103,7 @@ test "intersecting a ray with an empty group" {
     var xs = std.ArrayList(int.Intersection).init(std.testing.allocator);
     defer xs.deinit();
 
-    try intersect(&xs, g, r);
+    try intersect(&xs, &g, r);
     try expectEqual(xs.items.len, 0);
 }
 
@@ -141,7 +125,7 @@ test "intersecting a ray with a nonempty group" {
     try g.spheres.append(s1);
     try g.spheres.append(s2);
     try g.spheres.append(s3);
-    try intersect(&xs, g, r);
+    try intersect(&xs, &g, r);
 
     try expectEqual(xs.items.len, 4);
     try expectEqual(xs.items[0].shape_attrs, s2.common_attrs);
@@ -168,6 +152,6 @@ test "intersecting a transformed group" {
     defer xs.deinit();
 
     try g.spheres.append(s);
-    try intersect(&xs, g, r);
+    try intersect(&xs, &g, r);
     try expectEqual(xs.items.len, 2);
 }
