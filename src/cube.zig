@@ -59,16 +59,11 @@ pub fn normalAt(c: Cube, world_point: tup.Point) tup.Vector {
     const z = @fabs(object_point[2]);
     const maxc = @maximum(x, @maximum(y, z));
 
-    var object_normal: tup.Vector = undefined;
-    if (maxc == x) {
-        object_normal = tup.vector(object_point[0], 0, 0);
-    } else if (maxc == y) {
-        object_normal = tup.vector(0, object_point[1], 0);
-    } else if (maxc == z) {
-        object_normal = tup.vector(0, 0, object_point[2]);
-    } else {
-        unreachable;
-    }
+    const object_normal =
+        if (maxc == x) tup.vector(object_point[0], 0, 0)
+        else if (maxc == y) tup.vector(0, object_point[1], 0)
+        else if (maxc == z) tup.vector(0, 0, object_point[2])
+        else unreachable;
 
     return tup.normalize(mat.mul(mat.transpose(inverse), object_normal));
 }
