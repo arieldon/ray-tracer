@@ -347,17 +347,10 @@ test "converting an OBJ file to a group" {
     try expectEqual(world_group.triangles.items, obj.faces.items);
     try expectEqual(obj_group.triangles.items, obj.faces.items);
 
-    std.debug.print("\n", .{});
     var i: usize = 0;
     var iter = obj.groups.valueIterator();
     while (iter.next()) |obj_named_group| : (i += 1) {
         const world_subgroup = &world_group.subgroups.items[i];
-
-        std.debug.print("WORLD: {any}\n", .{world_subgroup.triangles.items});
-        std.debug.print("  OBJ: {any}\n", .{obj_named_group.items});
-
-        // try expectEqual(world_subgroup.triangles.items, obj_named_group.items);
-
-        std.debug.print("---\n", .{});
+        try expectEqual(world_subgroup.triangles.items, obj_named_group.items);
     }
 }

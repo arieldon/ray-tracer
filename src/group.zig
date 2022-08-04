@@ -1,6 +1,7 @@
 const std = @import("std");
 const expect = std.testing.expect;
 const expectEqual = std.testing.expectEqual;
+const bnd = @import("bounds.zig");
 const con = @import("cone.zig");
 const cub = @import("cube.zig");
 const cyl = @import("cylinder.zig");
@@ -15,8 +16,13 @@ const tup = @import("tuple.zig");
 
 /// Store shapes together to transform them as a single unit.
 pub const Group = struct {
+    allocator: std.mem.Allocator,
+
     /// Transform to apply to all shapes in the group.
     transform: mat.Matrix = mat.identity,
+
+    /// TODO Use a bounding box to test [+].
+    bounding_box: ?bnd.Bounds = null,
 
     /// Store a dynamic array of each type of shape in the group.
     spheres: std.ArrayList(sph.Sphere),
@@ -31,6 +37,7 @@ pub const Group = struct {
 
     pub fn init(allocator: std.mem.Allocator, transform: mat.Matrix) Group {
         return .{
+            .allocator = allocator,
             .transform = transform,
             .spheres = std.ArrayList(sph.Sphere).init(allocator),
             .planes = std.ArrayList(pln.Plane).init(allocator),
@@ -55,33 +62,39 @@ pub const Group = struct {
 };
 
 pub fn intersect(ts: *std.ArrayList(int.Intersection), g: *Group, r: ray.Ray) !void {
-    for (g.spheres.items) |sphere|
-        try sph.intersect(ts, transformShape(sph.Sphere, sphere, g.transform), r);
-    for (g.planes.items) |plane|
-        try pln.intersect(ts, transformShape(pln.Plane, plane, g.transform), r);
-    for (g.cubes.items) |cube|
-        try cub.intersect(ts, transformShape(cub.Cube, cube, g.transform), r);
-    for (g.cylinders.items) |cylinder|
-        try cyl.intersect(ts, transformShape(cyl.Cylinder, cylinder, g.transform), r);
-    for (g.cones.items) |cone|
-        try con.intersect(ts, transformShape(con.Cone, cone, g.transform), r);
-    for (g.triangles.items) |triangle|
-        try tri.intersect(ts, transformShape(tri.Triangle, triangle, g.transform), r);
+    if (g.bounding_box == null) g.bounding_box = bnd.boundGroup(g);
 
-    for (g.subgroups.items) |*subgroup| {
-        // Apply transform of encompassing group to this subgroup.
-        const original_transform = subgroup.transform;
-        subgroup.transform = mat.mul(g.transform, original_transform);
+    // Test ray intersection for shapes in group if and only if the ray
+    // intersects the group's bounding box.
+    if (bnd.intersect(g.bounding_box.?, r)) {
+        for (g.spheres.items) |sphere|
+            try sph.intersect(ts, transformShape(sph.Sphere, sphere, g.transform), r);
+        for (g.planes.items) |plane|
+            try pln.intersect(ts, transformShape(pln.Plane, plane, g.transform), r);
+        for (g.cubes.items) |cube|
+            try cub.intersect(ts, transformShape(cub.Cube, cube, g.transform), r);
+        for (g.cylinders.items) |cylinder|
+            try cyl.intersect(ts, transformShape(cyl.Cylinder, cylinder, g.transform), r);
+        for (g.cones.items) |cone|
+            try con.intersect(ts, transformShape(con.Cone, cone, g.transform), r);
+        for (g.triangles.items) |triangle|
+            try tri.intersect(ts, transformShape(tri.Triangle, triangle, g.transform), r);
 
-        // FIXME Resolve error set instead of crashing.
-        intersect(ts, subgroup, r) catch unreachable;
+        for (g.subgroups.items) |*subgroup| {
+            // Apply transform of encompassing group to this subgroup.
+            const original_transform = subgroup.transform;
+            subgroup.transform = mat.mul(g.transform, original_transform);
 
-        // Restore the original transform of the subgroup for the next test for
-        // intersections.
-        subgroup.transform = original_transform;
+            // FIXME Resolve error set instead of crashing.
+            intersect(ts, subgroup, r) catch unreachable;
+
+            // Restore the original transform of the subgroup for the next test for
+            // intersections.
+            subgroup.transform = original_transform;
+        }
+
+        int.sortIntersections(ts.items);
     }
-
-    int.sortIntersections(ts.items);
 }
 
 fn transformShape(comptime T: type, shape: T, transform: mat.Matrix) T {
