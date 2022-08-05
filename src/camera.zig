@@ -19,6 +19,13 @@ pub const Camera = struct {
     transform: mat.Matrix,
 };
 
+const ThreadContext = struct {
+    canvas: *cnv.Canvas,
+    camera: *const Camera,
+    world: *const wrd.World,
+    rows_per_thread: u32,
+};
+
 pub fn camera(horizontal_size: u32, vertical_size: u32, field_of_view: f64) Camera {
     const h = @intToFloat(f64, horizontal_size);
     const v = @intToFloat(f64, vertical_size);
@@ -44,7 +51,7 @@ pub fn camera(horizontal_size: u32, vertical_size: u32, field_of_view: f64) Came
     return c;
 }
 
-pub fn rayForPixel(c: Camera, px: u32, py: u32) ray.Ray {
+pub fn rayForPixel(c: *const Camera, px: u32, py: u32) ray.Ray {
     const x_offset = (@intToFloat(f64, px) + 0.5) * c.pixel_size;
     const y_offset = (@intToFloat(f64, py) + 0.5) * c.pixel_size;
 
@@ -58,22 +65,46 @@ pub fn rayForPixel(c: Camera, px: u32, py: u32) ray.Ray {
     return ray.ray(origin, direction);
 }
 
-pub fn render(allocator: std.mem.Allocator, c: Camera, w: wrd.World) !cnv.Canvas {
-    // The responsibility to free this canvas lies on the environment to which
-    // this function returns it.
-    var image = try cnv.canvas(allocator, c.horizontal_size, c.vertical_size);
+pub fn render(allocator: std.mem.Allocator, cam: Camera, world: wrd.World) !cnv.Canvas {
+    var image = try cnv.canvas(allocator, cam.horizontal_size, cam.vertical_size);
 
-    var y: u32 = 0;
-    while (y < c.vertical_size) : (y += 1) {
-        var x: u32 = 0;
-        while (x < c.horizontal_size) : (x += 1) {
-            const r = rayForPixel(c, x, y);
-            const color = wrd.colorAt(w, r);
-            image.writePixel(x, y, color);
-        }
+    const max_number_of_threads = 8;
+    const rows_per_thread = cam.vertical_size / max_number_of_threads;
+
+    var threads = std.ArrayList(std.Thread).init(allocator);
+    defer threads.deinit();
+
+    const context = ThreadContext{
+        .canvas = &image,
+        .camera = &cam,
+        .world = &world,
+        .rows_per_thread = rows_per_thread,
+    };
+
+    var i: u32 = 0;
+    while (i < max_number_of_threads) : (i += 1) {
+        try threads.append(
+            try std.Thread.spawn(.{}, renderInternal, .{&context, i * rows_per_thread}));
     }
 
+    for (threads.items) |thread| thread.join();
+
+    // NOTE Caller own returned memory.
     return image;
+}
+
+fn renderInternal(context: *const ThreadContext, start_row: u32) void {
+    const final_row = start_row + context.rows_per_thread;
+
+    var y: u32 = start_row;
+    while (y < final_row) : (y += 1) {
+        var x: u32 = 0;
+        while (x < context.camera.horizontal_size) : (x += 1) {
+            const r = rayForPixel(context.camera, x, y);
+            const color = wrd.colorAt(context.world, r);
+            context.canvas.writePixel(x, y, color);
+        }
+    }
 }
 
 test "constructing a camera" {

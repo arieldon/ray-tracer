@@ -114,7 +114,7 @@ pub inline fn defaultWorld(allocator: std.mem.Allocator) !World {
     return World.defaultInit(allocator);
 }
 
-pub fn intersectWorld(xs: *std.ArrayList(int.Intersection), w: World, r: ray.Ray) void {
+pub fn intersectWorld(xs: *std.ArrayList(int.Intersection), w: *const World, r: ray.Ray) void {
     // Cast a ray through each object in the world and append any intersections
     // to the list.
 
@@ -130,11 +130,11 @@ pub fn intersectWorld(xs: *std.ArrayList(int.Intersection), w: World, r: ray.Ray
     int.sortIntersections(xs.items);
 }
 
-pub fn shadeHit(w: World, comps: int.Computation) cnv.Color {
+pub fn shadeHit(w: *const World, comps: int.Computation) cnv.Color {
     return shadeHitInternal(w, comps, ray_depth_limit);
 }
 
-fn shadeHitInternal(w: World, comps: int.Computation, remaining: usize) cnv.Color {
+fn shadeHitInternal(w: *const World, comps: int.Computation, remaining: usize) cnv.Color {
     const shadowed = isShadowed(w, comps.over_point);
     const surface = mtl.lighting(
         comps.shape_attrs,
@@ -160,11 +160,11 @@ fn shadeHitInternal(w: World, comps: int.Computation, remaining: usize) cnv.Colo
     return surface + reflected + refracted;
 }
 
-pub fn colorAt(w: World, r: ray.Ray) cnv.Color {
+pub fn colorAt(w: *const World, r: ray.Ray) cnv.Color {
     return colorAtInternal(w, r, ray_depth_limit);
 }
 
-fn colorAtInternal(w: World, r: ray.Ray, remaining: usize) cnv.Color {
+fn colorAtInternal(w: *const World, r: ray.Ray, remaining: usize) cnv.Color {
     var intersections = std.ArrayList(int.Intersection).init(w.allocator);
     defer intersections.deinit();
 
@@ -176,7 +176,7 @@ fn colorAtInternal(w: World, r: ray.Ray, remaining: usize) cnv.Color {
     return cnv.color(0, 0, 0);
 }
 
-pub fn isShadowed(w: World, p: tup.Point) bool {
+pub fn isShadowed(w: *const World, p: tup.Point) bool {
     // Measure distance from point to light source and calculate magnitude of
     // resulting vector.
     const v = w.light.position - p;
@@ -201,11 +201,11 @@ pub fn isShadowed(w: World, p: tup.Point) bool {
     return false;
 }
 
-pub fn reflectedColor(w: World, comps: int.Computation) cnv.Color {
+pub fn reflectedColor(w: *const World, comps: int.Computation) cnv.Color {
     return reflectedColorInternal(w, comps, ray_depth_limit);
 }
 
-fn reflectedColorInternal(w: World, comps: int.Computation, remaining: usize) cnv.Color {
+fn reflectedColorInternal(w: *const World, comps: int.Computation, remaining: usize) cnv.Color {
     const black = cnv.Color{0, 0, 0};
 
     // Limit recursion to handle rays that bounce between parallel mirrors.
@@ -224,11 +224,11 @@ fn reflectedColorInternal(w: World, comps: int.Computation, remaining: usize) cn
     return color * @splat(3, comps.shape_attrs.material.reflective);
 }
 
-pub fn refractedColor(w: World, comps: int.Computation) cnv.Color {
+pub fn refractedColor(w: *const World, comps: int.Computation) cnv.Color {
     return refractedColorInternal(w, comps, ray_depth_limit);
 }
 
-fn refractedColorInternal(w: World, comps: int.Computation, remaining: usize) cnv.Color {
+fn refractedColorInternal(w: *const World, comps: int.Computation, remaining: usize) cnv.Color {
     const black = cnv.Color{0, 0, 0};
 
     // Stop if the computation reaches the ray depth or number of recursive.
