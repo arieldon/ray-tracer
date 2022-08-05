@@ -1,4 +1,5 @@
 const std = @import("std");
+const expect = std.testing.expect;
 const expectEqual = std.testing.expectEqual;
 const expectApproxEqAbs = std.testing.expectApproxEqAbs;
 const int = @import("intersection.zig");
@@ -215,6 +216,6 @@ test "computing the normal vector on a cone" {
         .{ .point = tup.Point{-1, -1, 0, 1}, .normal = tup.Vector{-1, 1, 0, 0} },
     }) |x| {
         const n = normalAt(c, x.point);
-        try expectEqual(n, x.normal);
+        try expect(tup.equal(n, x.normal));
     }
 }

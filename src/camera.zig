@@ -1,6 +1,7 @@
 const std = @import("std");
 const expect = std.testing.expect;
 const expectEqual = std.testing.expectEqual;
+const expectApproxEqAbs = std.testing.expectApproxEqAbs;
 const cnv = @import("canvas.zig");
 const mat = @import("matrix.zig");
 const ray = @import("ray.zig");
@@ -88,12 +89,12 @@ test "constructing a camera" {
 
 test "the pixel size for a horizontal canvas" {
     const c = camera(200, 125, std.math.pi / 2.0);
-    try expectEqual(c.pixel_size, 0.01);
+    try expectApproxEqAbs(c.pixel_size, 0.01, tup.epsilon);
 }
 
 test "the pixel size for a vertical canvas" {
     const c = camera(125, 200, std.math.pi / 2.0);
-    try expectEqual(c.pixel_size, 0.01);
+    try expectApproxEqAbs(c.pixel_size, 0.01, tup.epsilon);
 }
 
 test "constructing a ray through the center of the canvas" {
