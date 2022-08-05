@@ -25,10 +25,6 @@ pub const Intersection = struct {
     normal: tup.Vector = tup.vector(-1, -1, -1),
 };
 
-pub inline fn intersections(xs: *std.ArrayList(Intersection), new: []Intersection) !void {
-    try xs.appendSlice(new);
-}
-
 pub fn sortIntersections(xs: []Intersection) void {
     const static = struct {
         fn cmp(context: void, a: Intersection, b: Intersection) bool {
@@ -179,28 +175,13 @@ test "an intersection encapsulates t and object" {
     try expectEqual(i.shape_attrs, s.common_attrs);
 }
 
-test "aggregating intersections" {
-    const s = sph.Sphere{};
-    var intersection1 = Intersection{ .t = 1, .shape_attrs = s.common_attrs };
-    var intersection2 = Intersection{ .t = 2, .shape_attrs = s.common_attrs };
-    var xs = std.ArrayList(Intersection).init(std.testing.allocator);
-    defer xs.deinit();
-
-    try intersections(&xs, &[_]Intersection{ intersection1, intersection2 });
-    try expectEqual(xs.items.len, 2);
-    try expectEqual(xs.items[0].t, 1);
-    try expectEqual(xs.items[1].t, 2);
-}
-
 test "the hit, when all intersections have positive t" {
     const s = sph.Sphere{};
     var int1 = Intersection{ .t = 1, .shape_attrs = s.common_attrs };
     var int2 = Intersection{ .t = 2, .shape_attrs = s.common_attrs };
-    var xs = std.ArrayList(Intersection).init(std.testing.allocator);
-    defer xs.deinit();
+    var xs = &[_]Intersection{ int1, int2 };
 
-    try intersections(&xs, &[_]Intersection{ int1, int2 });
-    const int = hit(xs.items);
+    const int = hit(xs);
     try expectEqual(int, int1);
 }
 
@@ -208,11 +189,9 @@ test "the hit, when some intersections have negative t" {
     const s = sph.Sphere{};
     var int1 = Intersection{ .t = -1, .shape_attrs = s.common_attrs };
     var int2 = Intersection{ .t = 1, .shape_attrs = s.common_attrs };
-    var xs = std.ArrayList(Intersection).init(std.testing.allocator);
-    defer xs.deinit();
+    var xs = &[_]Intersection{ int1, int2 };
 
-    try intersections(&xs, &[_]Intersection{ int1, int2 });
-    const int = hit(xs.items);
+    const int = hit(xs);
     try expectEqual(int, int2);
 }
 
@@ -220,11 +199,9 @@ test "the hit, when all intersections have negative t" {
     const s = sph.Sphere{};
     var int1 = Intersection{ .t = -2, .shape_attrs = s.common_attrs };
     var int2 = Intersection{ .t = -1, .shape_attrs = s.common_attrs };
-    var xs = std.ArrayList(Intersection).init(std.testing.allocator);
-    defer xs.deinit();
+    var xs = &[_]Intersection{ int1, int2 };
 
-    try intersections(&xs, &[_]Intersection{ int1, int2 });
-    const int = hit(xs.items);
+    const int = hit(xs);
     try expectEqual(int, null);
 }
 
@@ -234,11 +211,9 @@ test "the hit is always the lowest nonnegative intersection" {
     var int2 = Intersection{ .t = 7, .shape_attrs = s.common_attrs };
     var int3 = Intersection{ .t = -3, .shape_attrs = s.common_attrs };
     var int4 = Intersection{ .t = 2, .shape_attrs = s.common_attrs };
-    var xs = std.ArrayList(Intersection).init(std.testing.allocator);
-    defer xs.deinit();
+    var xs =  &[_]Intersection{ int1, int2, int3, int4 };
 
-    try intersections(&xs, &[_]Intersection{ int1, int2, int3, int4 });
-    const int = hit(xs.items);
+    const int = hit(xs);
     try expectEqual(int, int4);
 }
 
