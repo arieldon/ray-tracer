@@ -23,7 +23,6 @@ pub fn build(b: *std.build.Builder) void {
         .{ .bin_name = "cube", .source_path = "samples/cube.zig" },
         .{ .bin_name = "cylinder-world", .source_path = "samples/cylinder_world.zig" },
         .{ .bin_name = "cone", .source_path = "samples/cone.zig" },
-        .{ .bin_name = "hexagon-group", .source_path = "samples/hexagon_group.zig" },
         .{ .bin_name = "skewed-triangle", .source_path = "samples/skewed_triangle.zig" },
         .{ .bin_name = "teapot", .source_path = "samples/teapot.zig" },
     }) |sample| {
