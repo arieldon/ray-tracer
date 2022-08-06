@@ -1,5 +1,6 @@
 const std = @import("std");
 
+pub const bnd = @import("bounds.zig");
 pub const cam = @import("camera.zig");
 pub const cnv = @import("canvas.zig");
 pub const con = @import("cone.zig");

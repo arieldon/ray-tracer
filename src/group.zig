@@ -21,7 +21,8 @@ pub const Group = struct {
     /// Transform to apply to all shapes in the group.
     transform: mat.Matrix = mat.identity,
 
-    /// TODO Use a bounding box to test [+].
+    /// Use a bounding box to test if a ray intersects the group before testing
+    /// ray-shape intersection for each shape within the group.
     bounding_box: ?bnd.Bounds = null,
 
     /// Store a dynamic array of each type of shape in the group.
@@ -49,6 +50,10 @@ pub const Group = struct {
         };
     }
 
+    pub fn bound(self: *Group) void {
+        self.bounding_box = bnd.boundGroup(self);
+    }
+
     pub fn deinit(self: *Group) void {
         self.spheres.deinit();
         self.planes.deinit();
@@ -61,12 +66,10 @@ pub const Group = struct {
     }
 };
 
-pub fn intersect(ts: *std.ArrayList(int.Intersection), g: *Group, r: ray.Ray) !void {
-    if (g.bounding_box == null) g.bounding_box = bnd.boundGroup(g);
-
+pub fn intersect(ts: *std.ArrayList(int.Intersection), g: *const Group, r: ray.Ray) !void {
     // Test ray intersection for shapes in group if and only if the ray
     // intersects the group's bounding box.
-    if (bnd.intersect(g.bounding_box.?, r)) {
+    if (g.bounding_box == null or bnd.intersect(g.bounding_box.?, r)) {
         for (g.spheres.items) |sphere|
             try sph.intersect(ts, transformShape(sph.Sphere, sphere, g.transform), r);
         for (g.planes.items) |plane|

@@ -15,6 +15,9 @@ pub fn main() !void {
     var obj_group = try obj.toShapeGroup(allocator);
     defer obj_group.deinit();
 
+    // Create a bounding box for the group.
+    obj_group.bound();
+
     const world = rt.wrd.World{
         .allocator = allocator,
         .light = .{
@@ -29,7 +32,7 @@ pub fn main() !void {
     const field_of_view = std.math.pi / 3.0;
     var camera = rt.cam.camera(image_width, image_height, field_of_view);
 
-    const from = rt.tup.point(0, 0, -10);
+    const from = rt.tup.point(0, 3, -10);
     const to = rt.tup.point(0, 0, 0);
     const up = rt.tup.vector(0, 1, 0);
     camera.transform = rt.trm.viewTransform(from, to, up);

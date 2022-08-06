@@ -72,8 +72,10 @@ fn createHexagon(allocator: std.mem.Allocator) !rt.grp.Group {
     while (n < 6) : (n += 1) {
         var side = try createHexagonSide(allocator);
         side.transform = rt.mat.rotationY(@intToFloat(f64, n) * std.math.pi / 3.0);
+        side.bound();
         try hexagon.subgroups.append(side);
     }
+    hexagon.bound();
 
     return hexagon;
 }

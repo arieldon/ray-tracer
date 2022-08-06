@@ -82,7 +82,7 @@ inline fn boundTriangle(triangle: tri.Triangle) Bounds {
     };
 }
 
-pub fn boundGroup(group: *grp.Group) Bounds {
+pub fn boundGroup(group: *const grp.Group) Bounds {
     var group_bounds = Bounds{
         .minimum = tup.point(std.math.inf_f64, std.math.inf_f64, std.math.inf_f64),
         .maximum = tup.point(-std.math.inf_f64, -std.math.inf_f64, -std.math.inf_f64),
