@@ -68,12 +68,8 @@ pub fn rayForPixel(c: *const Camera, px: u32, py: u32) ray.Ray {
 pub fn render(allocator: std.mem.Allocator, cam: Camera, world: wrd.World) !cnv.Canvas {
     var image = try cnv.canvas(allocator, cam.horizontal_size, cam.vertical_size);
 
-    const max_number_of_threads = 8;
-    const rows_per_thread = cam.vertical_size / max_number_of_threads;
-
-    var threads = std.ArrayList(std.Thread).init(allocator);
-    defer threads.deinit();
-
+    const number_of_threads = 8;
+    const rows_per_thread = cam.vertical_size / number_of_threads;
     const context = ThreadContext{
         .canvas = &image,
         .camera = &cam,
@@ -82,14 +78,13 @@ pub fn render(allocator: std.mem.Allocator, cam: Camera, world: wrd.World) !cnv.
     };
 
     var i: u32 = 0;
-    while (i < max_number_of_threads) : (i += 1) {
-        try threads.append(
-            try std.Thread.spawn(.{}, renderInternal, .{&context, i * rows_per_thread}));
-    }
+    var threads: [number_of_threads]std.Thread = undefined;
+    while (i < number_of_threads) : (i += 1)
+        threads[i] = try std.Thread.spawn(.{}, renderInternal, .{&context, i * rows_per_thread});
 
-    for (threads.items) |thread| thread.join();
+    for (threads) |thread| thread.join();
 
-    // NOTE Caller own returned memory.
+    // NOTE Caller owns returned memory.
     return image;
 }
 
