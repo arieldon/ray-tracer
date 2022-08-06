@@ -21,23 +21,22 @@ pub fn main() !void {
         },
     };
 
-    const sphere = rt.sph.Sphere{
+    var sphere = rt.sph.Sphere{
         .common_attrs = .{
             .material = .{ .color = rt.cnv.Color{1, 0.3, 0.25} },
             .transform = rt.mat.translation(0, 1, 0.5),
         },
     };
 
-    var world = rt.wrd.world(allocator);
-    defer world.deinit();
-
-    world.light = rt.lht.PointLight{
-        .position = rt.tup.point(0, 30, -5),
-        .intensity = rt.cnv.color(1, 1, 1)
+    var world = rt.wrd.World{
+        .allocator = allocator,
+        .light = .{
+            .position = rt.tup.point(0, 30, -5),
+            .intensity = rt.cnv.color(1, 1, 1),
+        },
+        .spheres = &.{ sphere },
+        .planes = &.{ floor },
     };
-
-    try world.spheres.append(sphere);
-    try world.planes.append(floor);
 
     var camera = rt.cam.camera(image_width, image_height, field_of_view);
     camera.transform = rt.trm.viewTransform(

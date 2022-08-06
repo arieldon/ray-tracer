@@ -87,24 +87,14 @@ pub fn main() !void {
         },
     };
 
-    // Allocate world.
-    var world = rt.wrd.world(allocator);
-    defer world.deinit();
-
-    // Add floor and walls to the world.
-    try world.spheres.append(floor);
-    try world.spheres.append(left_wall);
-    try world.spheres.append(right_wall);
-
-    // Add spheres to the world.
-    try world.spheres.append(middle);
-    try world.spheres.append(right);
-    try world.spheres.append(left);
-
-    // Configure the world's light source.
-    world.light = rt.lht.PointLight{
-        .position = rt.tup.point(-10, 10, -10),
-        .intensity = rt.cnv.color(1, 1, 1)
+    // Create world and assign spheres to it.
+    const world = rt.wrd.World{
+        .allocator = allocator,
+        .light = .{
+            .position = rt.tup.point(-10, 10, -10),
+            .intensity = rt.cnv.color(1, 1, 1),
+        },
+        .spheres = &.{ floor, left_wall, right_wall, middle, right, left },
     };
 
     var camera = rt.cam.camera(image_width, image_height, field_of_view);

@@ -4,11 +4,6 @@ const rt = @import("ray-tracer");
 pub fn main() !void {
     const allocator = std.heap.page_allocator;
 
-    var world = rt.wrd.world(allocator);
-    defer world.deinit();
-
-    world.light.position = rt.tup.point(0, 0, -10);
-
     const obj_file = try std.fs.cwd().openFile("teapot.obj", .{});
     defer obj_file.close();
 
@@ -20,8 +15,14 @@ pub fn main() !void {
     var obj_group = try obj.toShapeGroup(allocator);
     defer obj_group.deinit();
 
-    // Add the teapot to the scene.
-    try world.groups.append(obj_group);
+    const world = rt.wrd.World{
+        .allocator = allocator,
+        .light = .{
+            .intensity = rt.cnv.Color{1, 1, 1},
+            .position = rt.tup.point(0, 0, -10),
+        },
+        .groups = &.{ obj_group },
+    };
 
     const image_width = 256;
     const image_height = 256;

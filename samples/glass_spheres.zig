@@ -52,15 +52,15 @@ pub fn main() !void {
         },
     };
 
-    var world = rt.wrd.world(allocator);
-    defer world.deinit();
-
-    world.light.intensity = rt.cnv.Color{0.9, 0.9, 0.9};
-    world.light.position = rt.tup.point(-2, 5, -10);
-
-    try world.planes.append(background);
-    try world.spheres.append(outer_sphere);
-    try world.spheres.append(inner_sphere);
+    const world = rt.wrd.World{
+        .allocator = allocator,
+        .light = .{
+            .intensity = rt.cnv.Color{0.9, 0.9, 0.9},
+            .position = rt.tup.point(-2, 5, -10),
+        },
+        .planes = &.{ background },
+        .spheres = &.{ outer_sphere, inner_sphere },
+    };
 
     const image_width = 600;
     const image_height = 600;

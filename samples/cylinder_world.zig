@@ -187,25 +187,15 @@ pub fn main() !void {
         },
     };
 
-    var world = rt.wrd.world(allocator);
-    defer world.deinit();
-
-    world.light = rt.lht.PointLight{
-        .intensity = rt.cnv.Color{1, 1, 1},
-        .position = rt.tup.point(1, 6.9, -4.9),
+    var world = rt.wrd.World{
+        .allocator = allocator,
+        .light = .{
+            .intensity = rt.cnv.Color{1, 1, 1},
+            .position = rt.tup.point(1, 6.9, -4.9),
+        },
+        .planes = &.{ floor },
+        .cylinders = &.{ big_cylinder, a, b, c, d, w, x, y, z, glass_cylinder },
     };
-
-    try world.planes.append(floor);
-    try world.cylinders.append(big_cylinder);
-    try world.cylinders.append(a);
-    try world.cylinders.append(b);
-    try world.cylinders.append(c);
-    try world.cylinders.append(d);
-    try world.cylinders.append(w);
-    try world.cylinders.append(x);
-    try world.cylinders.append(y);
-    try world.cylinders.append(z);
-    try world.cylinders.append(glass_cylinder);
 
     const image_width = 800;
     const image_height = 400;

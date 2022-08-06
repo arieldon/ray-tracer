@@ -10,12 +10,14 @@ pub fn main() !void {
         rt.mat.rotationY(std.math.pi / 4.0));
     defer hexagon.deinit();
 
-    var world = rt.wrd.world(allocator);
-    defer world.deinit();
-
-    world.light.position = rt.tup.point(0, 0, -10);
-
-    try world.groups.append(hexagon);
+    const world = rt.wrd.World{
+        .allocator = allocator,
+        .light = .{
+            .position = rt.tup.point(0, 0, -10),
+            .intensity = rt.cnv.Color{1, 1, 1},
+        },
+        .groups = &.{ hexagon },
+    };
 
     const image_width = 512;
     const image_height = 512;

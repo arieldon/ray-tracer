@@ -10,15 +10,14 @@ pub fn main() !void {
         },
     };
 
-    var world = rt.wrd.world(allocator);
-    defer world.deinit();
-
-    world.light = rt.lht.PointLight{
-        .intensity = rt.cnv.Color{0.9, 0.9, 0.9},
-        .position = rt.tup.point(0, 0, -10),
+    const world = rt.wrd.World{
+        .allocator = allocator,
+        .light = .{
+            .position = rt.tup.point(0, 0, -10),
+            .intensity = rt.cnv.Color{0.9, 0.9, 0.9},
+        },
+        .cubes = &.{ cube },
     };
-
-    try world.cubes.append(cube);
 
     const image_width = 1024;
     const image_height = 1024;

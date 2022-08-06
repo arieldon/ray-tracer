@@ -59,14 +59,14 @@ pub fn main() !void {
     };
     far.common_attrs.material.pattern.?.transform = rt.mat.scaling(0.25, 0.25, 0.25);
 
-    var world = rt.wrd.world(allocator);
-    defer world.deinit();
-
-    world.light.position = rt.tup.point(0, 30, -15);
-
-    try world.planes.append(bottom);
-    try world.planes.append(water);
-    try world.planes.append(far);
+    const world = rt.wrd.World{
+        .allocator = allocator,
+        .light = .{
+            .position = rt.tup.point(0, 30, -15),
+            .intensity = rt.cnv.Color{1, 1, 1},
+        },
+        .planes = &.{ bottom, water, far },
+    };
 
     const image_width = 512;
     const image_height = 256;

@@ -13,12 +13,14 @@ pub fn main() !void {
         .closed = false,
     };
 
-    var world = rt.wrd.world(allocator);
-    defer world.deinit();
-
-    world.light.position = rt.tup.point(0, 0, -10);
-
-    try world.cones.append(cone);
+    const world = rt.wrd.World{
+        .allocator = allocator,
+        .light = .{
+            .position = rt.tup.point(0, 0, -10),
+            .intensity = rt.cnv.Color{1, 1, 1},
+        },
+        .cones = &.{ cone },
+    };
 
     const image_width = 512;
     const image_height = 512;

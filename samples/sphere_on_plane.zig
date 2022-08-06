@@ -32,19 +32,15 @@ pub fn main() !void {
     };
 
     // Allocate world to hold light source and items.
-    var world = rt.wrd.world(allocator);
-    defer world.deinit();
-
-    // Define the light in the scene.
-    world.light = rt.lht.PointLight{
-        .position = rt.tup.point(10, 10, -10),
-        .intensity = rt.cnv.color(1, 1, 1)
+    const world = rt.wrd.World{
+        .allocator = allocator,
+        .light = .{
+            .position = rt.tup.point(10, 10, -10),
+            .intensity = rt.cnv.color(1, 1, 1)
+        },
+        .spheres = &.{ sphere },
+        .planes = &.{ floor, backdrop },
     };
-
-    // Add items to the world to render.
-    try world.spheres.append(sphere);
-    try world.planes.append(floor);
-    try world.planes.append(backdrop);
 
     // Create a camera to view and render the scene.
     var camera = rt.cam.camera(image_width, image_height, field_of_view);

@@ -12,15 +12,14 @@ pub fn main() !void {
         .specular = 0,
     };
 
-    var world = rt.wrd.world(allocator);
-    defer world.deinit();
-
-    world.light = rt.lht.PointLight{
-        .intensity = rt.cnv.Color{0.9, 0.9, 0.9},
-        .position = rt.tup.point(0, 0, -10),
+    const world = rt.wrd.World{
+        .allocator = allocator,
+        .light = .{
+            .intensity = rt.cnv.Color{0.9, 0.9, 0.9},
+            .position = rt.tup.point(0, 0, -10),
+        },
+        .triangles = &.{ triangle },
     };
-
-    try world.triangles.append(triangle);
 
     const image_width = 512;
     const image_height = 512;
