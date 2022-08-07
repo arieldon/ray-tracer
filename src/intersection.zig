@@ -14,15 +14,8 @@ const tup = @import("tuple.zig");
 
 pub const Intersection = struct {
     t: f64,
-
-    // FIXME Is it necessary to pass shape if normal already computed? I think
-    // so, it seems the material is necessary to find the refractive index.
-    // Intsead of passing the entire material, pass only the refractive field.
     shape_attrs: shp.CommonShapeAttributes,
-
-    // FIXME This shouldn't be set by default. Make it an optional field
-    // instead.
-    normal: tup.Vector = tup.vector(-1, -1, -1),
+    normal: ?tup.Vector = null,
 };
 
 pub fn sortIntersections(xs: []Intersection) void {
@@ -43,16 +36,15 @@ pub fn hit(xs: []Intersection) ?Intersection {
 
 pub const Computation = struct {
     t: f64,
-    n1: f64,
-    n2: f64,
     shape_attrs: shp.CommonShapeAttributes,
+
     point: tup.Point,
-    over_point: tup.Point,
-    under_point: tup.Point,
     eye: tup.Vector,
     normal: tup.Vector,
+
+    n1: f64,
+    n2: f64,
     reflect: tup.Vector,
-    inside: bool,
 };
 
 pub fn prepareComputations(i: Intersection, r: ray.Ray) Computation {
@@ -66,24 +58,11 @@ pub fn prepareComputations(i: Intersection, r: ray.Ray) Computation {
     comps.point = ray.position(r, i.t);
     comps.eye = -r.direction;
 
-    // FIXME Is it necessary to copy the normal vector. I think it's fine for
-    // now because it's only a 32-bit float.
-    if (tup.dot(i.normal, comps.eye) < 0) {
-        comps.inside = true;
-        comps.normal = -i.normal;
+    if (tup.dot(i.normal.?, comps.eye) < 0) {
+        comps.normal = -i.normal.?;
     } else {
-        comps.inside = false;
-        comps.normal = i.normal;
+        comps.normal = i.normal.?;
     }
-
-    // Slightly adjust point in direction of normal vector to move the point
-    // above the surface of the shape, effectively preventing the grain from
-    // self-shadowing.
-    comps.over_point = comps.point + comps.normal * @splat(4, @as(f64, tup.epsilon));
-
-    // Slighly adjust point below the surface of the shape to describe where
-    // refracted rays originate.
-    comps.under_point = comps.point - comps.normal * @splat(4, @as(f64, tup.epsilon));
 
     // Precompute reflection vector.
     comps.reflect = tup.reflect(r.direction, comps.normal);
@@ -234,19 +213,6 @@ test "precomputing the state of an intersection" {
     try expectEqual(comps.normal, tup.vector(0, 0, -1));
 }
 
-test "the hit, when an intersection occurs on the outside" {
-    const r = ray.ray(tup.point(0, 0, -5), tup.vector(0, 0, 1));
-    const s = sph.Sphere{};
-    const t = 4;
-    const i = Intersection{
-        .t = t,
-        .shape_attrs = s.common_attrs,
-        .normal = sph.normalAt(s, ray.position(r, t)),
-    };
-    const comps = prepareComputations(i, r);
-    try expectEqual(comps.inside, false);
-}
-
 test "the hit, when an intersection occurs on the inside" {
     const r = ray.ray(tup.point(0, 0, 0), tup.vector(0, 0, 1));
     const s = sph.Sphere{};
@@ -259,24 +225,7 @@ test "the hit, when an intersection occurs on the inside" {
     const comps = prepareComputations(i, r);
     try expectEqual(comps.point, tup.point(0, 0, 1));
     try expectEqual(comps.eye, tup.vector(0, 0, -1));
-    try expectEqual(comps.inside, true);
     try expectEqual(comps.normal, tup.vector(0, 0, -1));
-}
-
-test "the hit should offset the point" {
-    const r = ray.ray(tup.point(0, 0, -5), tup.vector(0, 0, 1));
-
-    const s = sph.Sphere{
-        .common_attrs = .{
-            .transform = mat.translation(0, 0, 1),
-        },
-    };
-
-    const i = Intersection{ .t = 5, .shape_attrs = s.common_attrs };
-    const comps = prepareComputations(i, r);
-
-    try expect(comps.over_point[2] < -tup.epsilon / 2.0);
-    try expect(comps.point[2] > comps.over_point[2]);
 }
 
 test "precomputing the reflection vector" {
@@ -353,27 +302,6 @@ test "finding n1 and n2 at various intersections" {
         try expectEqual(comps.n1, x.n1);
         try expectEqual(comps.n2, x.n2);
     }
-}
-
-test "the under point is offset below the surface" {
-    const r = ray.Ray{
-        .origin = tup.point(0, 0, -5),
-        .direction = tup.vector(0, 0, 1),
-    };
-    const sphere = sph.Sphere{
-        .common_attrs = .{
-            .material = .{
-                .refractive_index = 1.5,
-                .transparency = 1.0,
-            },
-            .transform = mat.translation(0, 0, 1),
-        },
-    };
-    const i = Intersection{ .t = 5, .shape_attrs = sphere.common_attrs };
-
-    const comps = prepareComputations(i, r);
-    try expect(comps.under_point[2] > tup.epsilon / 2.0);
-    try expect(comps.point[2] < comps.under_point[2]);
 }
 
 test "the Schlick approximation under total internal reflection" {
