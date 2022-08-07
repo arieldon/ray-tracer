@@ -38,13 +38,13 @@ pub const World = struct {
     groups: []grp.Group = &.{},
 
     pub fn intersect(self: *const World, r: ray.Ray, xs: *std.ArrayList(int.Intersection)) void {
-        for (self.spheres) |sphere| sph.intersect(xs, sphere, r) catch unreachable;
-        for (self.planes) |plane| pln.intersect(xs, plane, r) catch unreachable;
-        for (self.cubes) |cube| cub.intersect(xs, cube, r) catch unreachable;
-        for (self.cylinders) |cylinder| cyl.intersect(xs, cylinder, r) catch unreachable;
-        for (self.cones) |cone| con.intersect(xs, cone, r) catch unreachable;
-        for (self.triangles) |triangle| tri.intersect(xs, triangle, r) catch unreachable;
-        for (self.groups) |*group| grp.intersect(xs, group, r) catch unreachable;
+        for (self.spheres) |sphere| sphere.intersect(r, xs) catch unreachable;
+        for (self.planes) |plane| plane.intersect(r, xs) catch unreachable;
+        for (self.cubes) |cube| cube.intersect(r, xs) catch unreachable;
+        for (self.cylinders) |cylinder| cylinder.intersect(r, xs) catch unreachable;
+        for (self.cones) |cone| cone.intersect(r, xs) catch unreachable;
+        for (self.triangles) |triangle| triangle.intersect(r, xs) catch unreachable;
+        for (self.groups) |*group| group.intersect(r, xs) catch unreachable;
         int.sortIntersections(xs.items);
     }
 };

@@ -54,6 +54,40 @@ pub const Group = struct {
         self.bounding_box = bnd.boundGroup(self);
     }
 
+    pub fn intersect(g: *const Group, r: ray.Ray, xs: *std.ArrayList(int.Intersection)) !void {
+        // Test ray intersection for shapes in group if and only if the ray
+        // intersects the group's bounding box.
+        if (g.bounding_box == null or bnd.intersect(g.bounding_box.?, r)) {
+            for (g.spheres.items) |sphere|
+                try transformShape(sphere, g.transform).intersect(r, xs);
+            for (g.planes.items) |plane|
+                try transformShape(plane, g.transform).intersect(r, xs);
+            for (g.cubes.items) |cube|
+                try transformShape(cube, g.transform).intersect(r, xs);
+            for (g.cylinders.items) |cylinder|
+                try transformShape(cylinder, g.transform).intersect(r, xs);
+            for (g.cones.items) |cone|
+                try transformShape(cone, g.transform).intersect(r, xs);
+            for (g.triangles.items) |triangle|
+                try transformShape(triangle, g.transform).intersect(r, xs);
+
+            for (g.subgroups.items) |*subgroup| {
+                // Apply transform of encompassing group to this subgroup.
+                const original_transform = subgroup.transform;
+                subgroup.transform = mat.mul(g.transform, original_transform);
+
+                // FIXME Resolve error set instead of crashing.
+                subgroup.intersect(r, xs) catch unreachable;
+
+                // Restore the original transform of the subgroup for the next test for
+                // intersections.
+                subgroup.transform = original_transform;
+            }
+
+            int.sortIntersections(xs.items);
+        }
+    }
+
     pub fn deinit(self: *Group) void {
         self.spheres.deinit();
         self.planes.deinit();
@@ -66,108 +100,9 @@ pub const Group = struct {
     }
 };
 
-pub fn intersect(ts: *std.ArrayList(int.Intersection), g: *const Group, r: ray.Ray) !void {
-    // Test ray intersection for shapes in group if and only if the ray
-    // intersects the group's bounding box.
-    if (g.bounding_box == null or bnd.intersect(g.bounding_box.?, r)) {
-        for (g.spheres.items) |sphere|
-            try sph.intersect(ts, transformShape(sph.Sphere, sphere, g.transform), r);
-        for (g.planes.items) |plane|
-            try pln.intersect(ts, transformShape(pln.Plane, plane, g.transform), r);
-        for (g.cubes.items) |cube|
-            try cub.intersect(ts, transformShape(cub.Cube, cube, g.transform), r);
-        for (g.cylinders.items) |cylinder|
-            try cyl.intersect(ts, transformShape(cyl.Cylinder, cylinder, g.transform), r);
-        for (g.cones.items) |cone|
-            try con.intersect(ts, transformShape(con.Cone, cone, g.transform), r);
-        for (g.triangles.items) |triangle|
-            try tri.intersect(ts, transformShape(tri.Triangle, triangle, g.transform), r);
-
-        for (g.subgroups.items) |*subgroup| {
-            // Apply transform of encompassing group to this subgroup.
-            const original_transform = subgroup.transform;
-            subgroup.transform = mat.mul(g.transform, original_transform);
-
-            // FIXME Resolve error set instead of crashing.
-            intersect(ts, subgroup, r) catch unreachable;
-
-            // Restore the original transform of the subgroup for the next test for
-            // intersections.
-            subgroup.transform = original_transform;
-        }
-
-        int.sortIntersections(ts.items);
-    }
-}
-
-fn transformShape(comptime T: type, shape: T, transform: mat.Matrix) T {
+fn transformShape(shape: anytype, transform: mat.Matrix) @TypeOf(shape) {
     var transformed_shape = shape;
     transformed_shape.common_attrs.transform = mat.mul(
         transform, shape.common_attrs.transform);
     return transformed_shape;
-}
-
-test "intersecting a ray with an empty group" {
-    const r = ray.Ray{
-        .origin = tup.point(0, 0, 0),
-        .direction = tup.vector(0, 0, 1),
-    };
-
-    var g = Group.init(std.testing.allocator, mat.identity);
-    defer g.deinit();
-
-    var xs = std.ArrayList(int.Intersection).init(std.testing.allocator);
-    defer xs.deinit();
-
-    try intersect(&xs, &g, r);
-    try expectEqual(xs.items.len, 0);
-}
-
-test "intersecting a ray with a nonempty group" {
-    const s1 = sph.Sphere{};
-    const s2 = sph.Sphere{ .common_attrs = .{ .transform = mat.translation(0, 0, -3) } };
-    const s3 = sph.Sphere{ .common_attrs = .{ .transform = mat.translation(5, 0, 0) } };
-    const r = ray.Ray{
-        .origin = tup.point(0, 0, -5),
-        .direction = tup.vector(0, 0, 1),
-    };
-
-    var g = Group.init(std.testing.allocator, mat.identity);
-    defer g.deinit();
-
-    var xs = std.ArrayList(int.Intersection).init(std.testing.allocator);
-    defer xs.deinit();
-
-    try g.spheres.append(s1);
-    try g.spheres.append(s2);
-    try g.spheres.append(s3);
-    try intersect(&xs, &g, r);
-
-    try expectEqual(xs.items.len, 4);
-    try expectEqual(xs.items[0].shape_attrs, s2.common_attrs);
-    try expectEqual(xs.items[1].shape_attrs, s2.common_attrs);
-    try expectEqual(xs.items[2].shape_attrs, s1.common_attrs);
-    try expectEqual(xs.items[3].shape_attrs, s1.common_attrs);
-}
-
-test "intersecting a transformed group" {
-    const s = sph.Sphere{
-        .common_attrs = .{
-            .transform = mat.translation(5, 0, 0),
-        },
-    };
-    const r = ray.Ray{
-        .origin = tup.point(10, 0, -10),
-        .direction = tup.vector(0, 0, 1),
-    };
-
-    var g = Group.init(std.testing.allocator, mat.scaling(2, 2, 2));
-    defer g.deinit();
-
-    var xs = std.ArrayList(int.Intersection).init(std.testing.allocator);
-    defer xs.deinit();
-
-    try g.spheres.append(s);
-    try intersect(&xs, &g, r);
-    try expectEqual(xs.items.len, 2);
 }
