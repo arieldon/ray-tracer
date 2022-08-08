@@ -47,7 +47,7 @@ pub fn prepareComputations(i: Intersection, r: ray.Ray) Computation {
     comps.t = i.t;
 
     // Precompute useful values.
-    comps.point = ray.position(r, i.t);
+    comps.point = r.position(i.t);
     comps.eye = -r.direction;
 
     switch (i.shape) {

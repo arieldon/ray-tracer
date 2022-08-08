@@ -1,6 +1,4 @@
 const std = @import("std");
-const expect = std.testing.expect;
-const expectEqual = std.testing.expectEqual;
 const cnv = @import("canvas.zig");
 const con = @import("cone.zig");
 const cub = @import("cube.zig");
@@ -93,7 +91,7 @@ fn colorAtInternal(world: *const World, r: ray.Ray, remaining: usize) cnv.Color 
         const comps = int.prepareComputationsForRefraction(hit, r, intersections.items);
         return shadeHitInternal(world, comps, remaining);
     }
-    return cnv.color(0, 0, 0);
+    return cnv.Color{0, 0, 0};
 }
 
 fn isShadowed(world: *const World, p: tup.Point) bool {
@@ -105,7 +103,7 @@ fn isShadowed(world: *const World, p: tup.Point) bool {
     // Create shadow ray to cast. If between the point and the light source,
     // this ray intersects an object, then a shadow engulfs that object.
     const direction = tup.normalize(v);
-    const shadow_ray = ray.ray(p, direction);
+    const shadow_ray = ray.Ray{ .origin = p, .direction = direction };
 
     var intersections = std.ArrayList(int.Intersection).init(world.allocator);
     defer intersections.deinit();

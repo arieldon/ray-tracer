@@ -12,8 +12,8 @@ pub fn build(b: *std.build.Builder) void {
     test_step.dependOn(&tests.step);
 
     inline for (.{
-        .{ .bin_name = "red-sphere", .source_path = "samples/red_sphere.zig" },
-        .{ .bin_name = "shaded-sphere", .source_path = "samples/shaded_sphere.zig" },
+        // .{ .bin_name = "red-sphere", .source_path = "samples/red_sphere.zig" },
+        // .{ .bin_name = "shaded-sphere", .source_path = "samples/shaded_sphere.zig" },
         .{ .bin_name = "sphere-world", .source_path = "samples/sphere_world.zig" },
         .{ .bin_name = "sphere-on-plane", .source_path = "samples/sphere_on_plane.zig" },
         .{ .bin_name = "striped-scene", .source_path = "samples/striped_scene.zig" },

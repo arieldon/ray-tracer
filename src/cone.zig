@@ -12,7 +12,7 @@ pub const Cone = struct {
     closed: bool = false,
 
     pub fn intersect(self: Cone, r: ray.Ray, xs: *std.ArrayList(int.Intersection)) !void {
-        const r_prime = ray.transform(r, mat.inverse(self.common_attrs.transform));
+        const r_prime = r.transform(mat.inverse(self.common_attrs.transform));
 
         const a = r_prime.direction[0] * r_prime.direction[0] -
                   r_prime.direction[1] * r_prime.direction[1] +

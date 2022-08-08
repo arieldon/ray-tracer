@@ -9,7 +9,7 @@ pub const Cube = struct {
     common_attrs: shp.CommonShapeAttributes = .{},
 
     pub fn intersect(self: Cube, r: ray.Ray, xs: *std.ArrayList(int.Intersection)) !void {
-        const r_prime = ray.transform(r, mat.inverse(self.common_attrs.transform));
+        const r_prime = r.transform(mat.inverse(self.common_attrs.transform));
 
         const x = checkAxis(r_prime.origin[0], r_prime.direction[0]);
         const y = checkAxis(r_prime.origin[1], r_prime.direction[1]);

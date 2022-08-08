@@ -4,7 +4,7 @@ const rt = @import("ray-tracer");
 pub fn main() !void {
     const allocator = std.heap.page_allocator;
 
-    const background = rt.pln.Plane{
+    const background = rt.Plane{
         .common_attrs = .{
             .transform = rt.mat.mul(rt.mat.translation(0, 0, 10), rt.mat.rotationX(std.math.pi / 2.0)),
             .material = .{
@@ -12,18 +12,18 @@ pub fn main() !void {
                 .diffuse = 0.2,
                 .specular = 0.0,
                 .pattern = .{
-                    .a = rt.cnv.Color{0.15, 0.15, 0.15},
-                    .b = rt.cnv.Color{0.85, 0.85, 0.85},
-                    .color_map = rt.pat.checker,
+                    .a = rt.Color{0.15, 0.15, 0.15},
+                    .b = rt.Color{0.85, 0.85, 0.85},
+                    .color_map = rt.checker,
                 },
             },
         },
     };
 
-    const outer_sphere = rt.sph.Sphere{
+    const outer_sphere = rt.Sphere{
         .common_attrs = .{
             .material = .{
-                .color = rt.cnv.Color{1, 1, 1},
+                .color = rt.Color{1, 1, 1},
                 .ambient = 0.0,
                 .diffuse = 0.0,
                 .specular = 0.9,
@@ -35,11 +35,11 @@ pub fn main() !void {
         },
     };
 
-    const inner_sphere = rt.sph.Sphere{
+    const inner_sphere = rt.Sphere{
         .common_attrs = .{
             .transform = rt.mat.scaling(0.5, 0.5, 0.5),
             .material = .{
-                .color = rt.cnv.Color{1, 1, 1},
+                .color = rt.Color{1, 1, 1},
                 .ambient = 0.0,
                 .diffuse = 0.0,
                 .specular = 0.9,
@@ -51,10 +51,10 @@ pub fn main() !void {
         },
     };
 
-    const world = rt.wrd.World{
+    const world = rt.World{
         .allocator = allocator,
         .light = .{
-            .intensity = rt.cnv.Color{0.9, 0.9, 0.9},
+            .intensity = rt.Color{0.9, 0.9, 0.9},
             .position = rt.tup.point(-2, 5, -10),
         },
         .planes = &.{ background },
@@ -64,14 +64,14 @@ pub fn main() !void {
     const image_width = 600;
     const image_height = 600;
     const field_of_view = 0.45;
-    var camera = rt.cam.camera(image_width, image_height, field_of_view);
+    var camera = rt.camera(image_width, image_height, field_of_view);
 
     const from = rt.tup.point(0, 0, -5);
     const to = rt.tup.point(0, 0, 0);
     const up = rt.tup.point(0, 1, 0);
     camera.transform = rt.trm.viewTransform(from, to, up);
 
-    var canvas = try rt.cam.render(allocator, camera, world);
+    var canvas = try rt.render(allocator, camera, world);
     defer canvas.deinit();
 
     const file = try std.fs.cwd().createFile("mirror_room.ppm", .{});

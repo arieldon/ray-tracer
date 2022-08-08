@@ -14,7 +14,7 @@ pub const Sphere = struct {
         // technically remains a unit sphere, which preserves ease of use, but
         // transformations may still be applied to it to alter its appearance in
         // the scene.
-        const r_prime = ray.transform(r, mat.inverse(self.common_attrs.transform));
+        const r_prime = r.transform(mat.inverse(self.common_attrs.transform));
 
         // Calculate the vector from the center of the sphere to the origin of the
         // ray, where the sphere is a unit sphere and thus centered about the

@@ -30,7 +30,7 @@ pub const Triangle = struct {
     }
 
     pub fn intersect(self: Triangle, r: ray.Ray, xs: *std.ArrayList(int.Intersection)) !void {
-        const r_prime = ray.transform(r, mat.inverse(self.common_attrs.transform));
+        const r_prime = r.transform(mat.inverse(self.common_attrs.transform));
 
         const dir_cross_e1 = tup.cross(r_prime.direction, self.e1);
         const det = tup.dot(self.e0, dir_cross_e1);

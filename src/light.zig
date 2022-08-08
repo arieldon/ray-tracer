@@ -1,5 +1,4 @@
 const std = @import("std");
-const expectEqual = std.testing.expectEqual;
 const cnv = @import("canvas.zig");
 const tup = @import("tuple.zig");
 

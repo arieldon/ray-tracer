@@ -14,7 +14,7 @@ pub const Plane = struct {
         // Transform the ray by the inverse of the transformation of the plane to
         // effectively apply the transformation of the plane without losing the
         // convenience of the "unit" plane.
-        const r_prime = ray.transform(r, mat.inverse(self.common_attrs.transform));
+        const r_prime = r.transform(mat.inverse(self.common_attrs.transform));
 
         // A ray parallel to a plane will not intersect it at any point. A ray with
         // a y-component of zero is parallel to the plane since the plane sits on

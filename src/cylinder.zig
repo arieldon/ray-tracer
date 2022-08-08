@@ -12,7 +12,7 @@ pub const Cylinder = struct {
     closed: bool = false,
 
     pub fn intersect(self: Cylinder, r: ray.Ray, xs: *std.ArrayList(int.Intersection)) !void {
-        const r_prime = ray.transform(r, mat.inverse(self.common_attrs.transform));
+        const r_prime = r.transform(mat.inverse(self.common_attrs.transform));
 
         // Because the ray is parallel to the y-axis, it will not intersect the
         // walls of the cylinder at any point. It may however intersect its caps.

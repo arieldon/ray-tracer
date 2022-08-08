@@ -1,6 +1,4 @@
 const std = @import("std");
-const expect = std.testing.expect;
-const expectEqual = std.testing.expectEqual;
 const bnd = @import("bounds.zig");
 const con = @import("cone.zig");
 const cub = @import("cube.zig");
