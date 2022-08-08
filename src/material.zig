@@ -11,7 +11,6 @@ const tup = @import("tuple.zig");
 pub const Material = struct {
     color: cnv.Color = cnv.color(1, 1, 1),
     pattern: ?pat.Pattern = null,
-    cast_shadow: bool = true,
 
     // Ambient reflection is background lighting.
     ambient: f64 = 0.1,

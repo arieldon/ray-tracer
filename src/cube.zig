@@ -19,18 +19,9 @@ pub const Cube = struct {
         const tmax = @minimum(x.tmax, @minimum(y.tmax, z.tmax));
 
         if (tmin > tmax) return;
-
         try xs.appendSlice(&[_]int.Intersection{
-            .{
-                .t = tmin,
-                .shape_attrs = self.common_attrs,
-                .normal = self.normalAt(ray.position(r, tmin)),
-            },
-            .{
-                .t = tmax,
-                .shape_attrs = self.common_attrs,
-                .normal = self.normalAt(ray.position(r, tmax)),
-            },
+            .{ .t = tmin, .shape = .{ .cube = self } },
+            .{ .t = tmax, .shape = .{ .cube = self } },
         });
     }
 

@@ -49,13 +49,13 @@ pub fn main() !void {
 
             // Calculate ray-sphere intersections. Upon intersection, compute
             // pixel color based on the scene's lighting.
-            try rt.sph.intersect(&intersections, sphere, ray);
+            try sphere.intersect(ray, &intersections);
             if (rt.int.hit(intersections.items)) |hit| {
                 const point = rt.ray.position(ray, hit.t);
-                const normal = rt.sph.normalAt(sphere, point);
+                const normal = sphere.normalAt(point);
                 const eye = -ray.direction;
                 const color = rt.mtl.lighting(
-                    hit.shape_attrs,
+                    sphere.common_attrs,
                     light,
                     point,
                     eye,

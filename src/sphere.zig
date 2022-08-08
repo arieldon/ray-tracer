@@ -47,16 +47,8 @@ pub const Sphere = struct {
             const t0 = (-b - @sqrt(discriminant)) / (2 * a);
             const t1 = (-b + @sqrt(discriminant)) / (2 * a);
             try xs.appendSlice(&[_]int.Intersection{
-                .{
-                    .t = t0,
-                    .shape_attrs = self.common_attrs,
-                    .normal = normalAt(self, ray.position(r, t0))
-                },
-                .{
-                    .t = t1,
-                    .shape_attrs = self.common_attrs,
-                    .normal = self.normalAt(ray.position(r, t1))
-                },
+                .{ .t = t0, .shape = .{ .sphere = self } },
+                .{ .t = t1, .shape = .{ .sphere = self } },
             });
         }
     }

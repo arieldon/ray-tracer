@@ -24,11 +24,7 @@ pub const Plane = struct {
 
         // Compute the intersection of the transformed ray with the plane.
         const t = -r_prime.origin[1] / r_prime.direction[1];
-        try xs.append(int.Intersection{
-            .t = t,
-            .shape_attrs = self.common_attrs,
-            .normal = self.normalAt(ray.position(r, t)),
-        });
+        try xs.append(int.Intersection{ .t = t, .shape = .{ .plane = self } });
     }
 
     pub fn normalAt(self: Plane, world_point: tup.Point) tup.Vector {

@@ -30,23 +30,19 @@ pub const Cone = struct {
         if (std.math.approxEqAbs(f64, a, 0, tup.epsilon)) {
             if (std.math.approxEqAbs(f64, b, 0, tup.epsilon)) {
                 // Ray misses the cone entirely when both a and b are zero.
-                try self.intersectCaps(r, r_prime, xs);
+                try self.intersectCaps(r_prime, xs);
                 return;
             } else {
                 const t = -c / (2 * b);
-                try xs.append(int.Intersection{
-                    .t = t,
-                    .shape_attrs = self.common_attrs,
-                    .normal = self.normalAt(ray.position(r, t)),
-                });
-                try self.intersectCaps(r, r_prime, xs);
+                try xs.append(int.Intersection{ .t = t, .shape = .{ .cone = self } });
+                try self.intersectCaps(r_prime, xs);
                 return;
             }
         }
 
         const discriminant = b * b - 4 * a * c;
         if (discriminant < 0) {
-            try self.intersectCaps(r, r_prime, xs);
+            try self.intersectCaps(r_prime, xs);
             return;
         }
 
@@ -56,53 +52,32 @@ pub const Cone = struct {
 
         const y0 = @mulAdd(f64, t0, r_prime.direction[1], r_prime.origin[1]);
         if (self.minimum < y0 and y0 < self.maximum) {
-            try xs.append(int.Intersection{
-                .t = t0,
-                .shape_attrs = self.common_attrs,
-                .normal = self.normalAt(ray.position(r, t0)),
-            });
+            try xs.append(int.Intersection{ .t = t0, .shape = .{ .cone = self } });
         }
 
         const y1 = @mulAdd(f64, t1, r_prime.direction[1], r_prime.origin[1]);
         if (self.minimum < y1 and y1 < self.maximum) {
-            try xs.append(int.Intersection{
-                .t = t1,
-                .shape_attrs = self.common_attrs,
-                .normal = self.normalAt(ray.position(r, t1)),
-            });
+            try xs.append(int.Intersection{ .t = t1, .shape = .{ .cone = self } });
         }
 
-        try self.intersectCaps(r, r_prime, xs);
+        try self.intersectCaps(r_prime, xs);
     }
 
-    fn intersectCaps(
-        self: Cone,
-        r: ray.Ray,
-        r_prime: ray.Ray,
-        xs: *std.ArrayList(int.Intersection),
-    ) !void {
+    fn intersectCaps(self: Cone, r_prime: ray.Ray, xs: *std.ArrayList(int.Intersection)) !void {
         if (!self.closed or std.math.approxEqAbs(f64, r_prime.direction[1], 0, tup.epsilon)) return;
 
         // Check for intersection between ray and lower cap by intersecting the ray
         // with the plane that functions as this cap.
         const t_lower = (self.minimum - r_prime.origin[1]) / r_prime.direction[1];
         if (checkCap(r_prime, t_lower, self.minimum)) {
-            try xs.append(int.Intersection{
-                .t = t_lower,
-                .shape_attrs = self.common_attrs,
-                .normal = self.normalAt(ray.position(r, t_lower)),
-            });
+            try xs.append(int.Intersection{ .t = t_lower, .shape = .{ .cone = self } });
         }
 
         // Check for intersection between ray and upper cap by intersecting the ray
         // with the plane that functions as that cap.
         const t_upper = (self.maximum - r_prime.origin[1]) / r_prime.direction[1];
         if (checkCap(r_prime, t_upper, self.maximum)) {
-            try xs.append(int.Intersection{
-                .t = t_upper,
-                .shape_attrs = self.common_attrs,
-                .normal = self.normalAt(ray.position(r, t_upper)),
-            });
+            try xs.append(int.Intersection{ .t = t_upper, .shape = .{ .cone = self } });
         }
     }
 

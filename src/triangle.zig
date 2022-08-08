@@ -46,11 +46,7 @@ pub const Triangle = struct {
         if (v < 0 or (u + v) > 1) return;
 
         const t = f * tup.dot(self.e1, origin_cross_e0);
-        try xs.append(int.Intersection{
-            .t = t,
-            .shape_attrs = self.common_attrs,
-            .normal = normalAt(self, ray.position(r, t)),
-        });
+        try xs.append(int.Intersection{ .t = t, .shape = .{ .triangle = self } });
     }
 
     pub fn normalAt(self: Triangle, world_point: tup.Point) tup.Vector {

@@ -23,7 +23,6 @@ pub fn main() !void {
     const outer_sphere = rt.sph.Sphere{
         .common_attrs = .{
             .material = .{
-                .cast_shadow = false,
                 .color = rt.cnv.Color{1, 1, 1},
                 .ambient = 0.0,
                 .diffuse = 0.0,

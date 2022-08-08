@@ -116,7 +116,7 @@ fn isShadowed(world: *const World, p: tup.Point) bool {
     // distance between the light source and the point, then the object lies
     // within a shadow.
     if (int.hit(intersections.items)) |hit| {
-        return hit.shape_attrs.material.cast_shadow and hit.t < distance;
+        return hit.t < distance;
     }
     return false;
 }

@@ -1,21 +1,14 @@
 const std = @import("std");
-const expect = std.testing.expect;
-const expectEqual = std.testing.expectEqual;
-const expectApproxEqAbs = std.testing.expectApproxEqAbs;
 const cnv = @import("canvas.zig");
-const cub = @import("cube.zig");
-const cyl = @import("cylinder.zig");
 const mat = @import("matrix.zig");
-const pln = @import("plane.zig");
 const ray = @import("ray.zig");
 const shp = @import("shape.zig");
-const sph = @import("sphere.zig");
 const tup = @import("tuple.zig");
+const wrd = @import("world.zig");
 
 pub const Intersection = struct {
     t: f64,
-    shape_attrs: shp.CommonShapeAttributes,
-    normal: ?tup.Vector = null,
+    shape: shp.Shape,
 };
 
 pub fn sortIntersections(xs: []Intersection) void {
@@ -52,17 +45,38 @@ pub fn prepareComputations(i: Intersection, r: ray.Ray) Computation {
 
     // Copy properties of intersection.
     comps.t = i.t;
-    comps.shape_attrs = i.shape_attrs;
 
     // Precompute useful values.
     comps.point = ray.position(r, i.t);
     comps.eye = -r.direction;
 
-    if (tup.dot(i.normal.?, comps.eye) < 0) {
-        comps.normal = -i.normal.?;
-    } else {
-        comps.normal = i.normal.?;
+    switch (i.shape) {
+        .sphere => |sphere| {
+            comps.shape_attrs = sphere.common_attrs;
+            comps.normal = sphere.normalAt(comps.point);
+        },
+        .plane => |plane| {
+            comps.shape_attrs = plane.common_attrs;
+            comps.normal = plane.normalAt(comps.point);
+        },
+        .cube => |cube| {
+            comps.shape_attrs = cube.common_attrs;
+            comps.normal = cube.normalAt(comps.point);
+        },
+        .cylinder => |cylinder| {
+            comps.shape_attrs = cylinder.common_attrs;
+            comps.normal = cylinder.normalAt(comps.point);
+        },
+        .cone => |cone| {
+            comps.shape_attrs = cone.common_attrs;
+            comps.normal = cone.normalAt(comps.point);
+        },
+        .triangle => |triangle| {
+            comps.shape_attrs = triangle.common_attrs;
+            comps.normal = triangle.normalAt(comps.point);
+        },
     }
+    if (tup.dot(comps.normal, comps.eye) < 0) comps.normal = -comps.normal;
 
     // Precompute reflection vector.
     comps.reflect = tup.reflect(r.direction, comps.normal);
@@ -83,7 +97,7 @@ pub fn prepareComputationsForRefraction(i: Intersection, r: ray.Ray, xs: []Inter
     defer arena.deinit();
     const allocator = arena.allocator();
 
-    const ShapeList = std.TailQueue(shp.CommonShapeAttributes);
+    const ShapeList = std.TailQueue(Intersection);
     var containers = ShapeList{};
 
     for (xs) |x| {
@@ -91,7 +105,16 @@ pub fn prepareComputationsForRefraction(i: Intersection, r: ray.Ray, xs: []Inter
             if (containers.len == 0) {
                 comps.n1 = 1.0;
             } else {
-                comps.n1 = containers.last.?.data.material.refractive_index;
+                const last_intersection = containers.last.?.data;
+                const material = switch (last_intersection.shape) {
+                    .sphere => |sphere| sphere.common_attrs.material,
+                    .plane => |plane| plane.common_attrs.material,
+                    .cube => |cube| cube.common_attrs.material,
+                    .cylinder => |cylinder| cylinder.common_attrs.material,
+                    .cone => |cone| cone.common_attrs.material,
+                    .triangle => |triangle| triangle.common_attrs.material,
+                };
+                comps.n1 = material.refractive_index;
             }
         }
 
@@ -102,14 +125,14 @@ pub fn prepareComputationsForRefraction(i: Intersection, r: ray.Ray, xs: []Inter
         // calculate the subsequent intersection.
         var it = containers.first;
         while (it) |node| : (it = node.next) {
-            if (std.meta.eql(node.data, x.shape_attrs)) {
+            if (std.meta.eql(node.data, x)) {
                 _ = containers.remove(node);
                 break;
             }
         } else {
             // FIXME Handle OutOfMemory error gracefully.
             const node = allocator.create(ShapeList.Node) catch unreachable;
-            node.data = x.shape_attrs;
+            node.data = x;
             containers.append(node);
         }
 
@@ -117,7 +140,16 @@ pub fn prepareComputationsForRefraction(i: Intersection, r: ray.Ray, xs: []Inter
             if (containers.len == 0) {
                 comps.n2 = 1.0;
             } else {
-                comps.n2 = containers.last.?.data.material.refractive_index;
+                const last_intersection = containers.last.?.data;
+                const material = switch (last_intersection.shape) {
+                    .sphere => |sphere| sphere.common_attrs.material,
+                    .plane => |plane| plane.common_attrs.material,
+                    .cube => |cube| cube.common_attrs.material,
+                    .cylinder => |cylinder| cylinder.common_attrs.material,
+                    .cone => |cone| cone.common_attrs.material,
+                    .triangle => |triangle| triangle.common_attrs.material,
+                };
+                comps.n2 = material.refractive_index;
             }
             break;
         }
@@ -145,248 +177,4 @@ pub fn schlick(comps: Computation) f64 {
     }
 
     return r0 + (1 - r0) * std.math.pow(f64, 1 - cos, 5);
-}
-
-test "an intersection encapsulates t and object" {
-    const s = sph.Sphere{};
-    const i = Intersection{ .t = 3.5, .shape_attrs = s.common_attrs };
-    try expectEqual(i.t, 3.5);
-    try expectEqual(i.shape_attrs, s.common_attrs);
-}
-
-test "the hit, when all intersections have positive t" {
-    const s = sph.Sphere{};
-    var int1 = Intersection{ .t = 1, .shape_attrs = s.common_attrs };
-    var int2 = Intersection{ .t = 2, .shape_attrs = s.common_attrs };
-    var xs = &[_]Intersection{ int1, int2 };
-
-    const int = hit(xs);
-    try expectEqual(int, int1);
-}
-
-test "the hit, when some intersections have negative t" {
-    const s = sph.Sphere{};
-    var int1 = Intersection{ .t = -1, .shape_attrs = s.common_attrs };
-    var int2 = Intersection{ .t = 1, .shape_attrs = s.common_attrs };
-    var xs = &[_]Intersection{ int1, int2 };
-
-    const int = hit(xs);
-    try expectEqual(int, int2);
-}
-
-test "the hit, when all intersections have negative t" {
-    const s = sph.Sphere{};
-    var int1 = Intersection{ .t = -2, .shape_attrs = s.common_attrs };
-    var int2 = Intersection{ .t = -1, .shape_attrs = s.common_attrs };
-    var xs = &[_]Intersection{ int1, int2 };
-
-    const int = hit(xs);
-    try expectEqual(int, null);
-}
-
-test "the hit is always the lowest nonnegative intersection" {
-    const s = sph.Sphere{};
-    var int1 = Intersection{ .t = 5, .shape_attrs = s.common_attrs };
-    var int2 = Intersection{ .t = 7, .shape_attrs = s.common_attrs };
-    var int3 = Intersection{ .t = -3, .shape_attrs = s.common_attrs };
-    var int4 = Intersection{ .t = 2, .shape_attrs = s.common_attrs };
-    var xs =  &[_]Intersection{ int1, int2, int3, int4 };
-
-    const int = hit(xs);
-    try expectEqual(int, int4);
-}
-
-test "precomputing the state of an intersection" {
-    const r = ray.ray(tup.point(0, 0, -5), tup.vector(0, 0, 1));
-    const s = sph.Sphere{};
-    const t = 4;
-    const i = Intersection{
-        .t = t,
-        .shape_attrs = s.common_attrs,
-        .normal = sph.normalAt(s, ray.position(r, t))
-    };
-    const comps = prepareComputations(i, r);
-    try expectEqual(comps.t, i.t);
-    try expectEqual(comps.shape_attrs, i.shape_attrs);
-    try expectEqual(comps.point, tup.point(0, 0, -1));
-    try expectEqual(comps.eye, tup.vector(0, 0, -1));
-    try expectEqual(comps.normal, tup.vector(0, 0, -1));
-}
-
-test "the hit, when an intersection occurs on the inside" {
-    const r = ray.ray(tup.point(0, 0, 0), tup.vector(0, 0, 1));
-    const s = sph.Sphere{};
-    const t = 1;
-    const i = Intersection{
-        .t = t,
-        .shape_attrs = s.common_attrs,
-        .normal = sph.normalAt(s, ray.position(r, t)),
-    };
-    const comps = prepareComputations(i, r);
-    try expectEqual(comps.point, tup.point(0, 0, 1));
-    try expectEqual(comps.eye, tup.vector(0, 0, -1));
-    try expectEqual(comps.normal, tup.vector(0, 0, -1));
-}
-
-test "precomputing the reflection vector" {
-    const a = @sqrt(2.0);
-    const b = a / 2.0;
-
-    const p = pln.Plane{};
-    const r = ray.Ray{
-        .origin = tup.point(0, 1, -1),
-        .direction = tup.vector(0, -b, b),
-    };
-    const i = Intersection{
-        .t = b,
-        .shape_attrs = p.common_attrs,
-        .normal = pln.normalAt(p, ray.position(r, b))
-    };
-
-    const comps = prepareComputations(i, r);
-    try expectEqual(comps.reflect, tup.vector(0, b, b));
-}
-
-test "finding n1 and n2 at various intersections" {
-    const a = sph.Sphere{
-        .common_attrs = .{
-            .material = .{
-                .refractive_index = 1.5,
-                .transparency = 1.0,
-            },
-            .transform = mat.scaling(2, 2, 2),
-        },
-    };
-    const b = sph.Sphere{
-        .common_attrs = .{
-            .material = .{
-                .refractive_index = 2.0,
-                .transparency = 1.0,
-            },
-            .transform = mat.translation(0, 0, -0.25),
-        },
-    };
-    const c = sph.Sphere{
-        .common_attrs = .{
-            .material = .{
-                .refractive_index = 2.5,
-                .transparency = 1.0,
-            },
-            .transform = mat.translation(0, 0, 0.25),
-        },
-    };
-
-    const r = ray.Ray{
-        .origin = tup.point(0, 0, -4),
-        .direction = tup.vector(0, 0, 1),
-    };
-
-    const xs = &[_]Intersection{
-        .{ .t = 2.00, .shape_attrs = a.common_attrs },
-        .{ .t = 2.75, .shape_attrs = b.common_attrs },
-        .{ .t = 3.25, .shape_attrs = c.common_attrs },
-        .{ .t = 4.75, .shape_attrs = b.common_attrs },
-        .{ .t = 5.25, .shape_attrs = c.common_attrs },
-        .{ .t = 6.00, .shape_attrs = a.common_attrs },
-    };
-
-    inline for (.{
-        .{ .n1 = 1.0, .n2 = 1.5 },
-        .{ .n1 = 1.5, .n2 = 2.0 },
-        .{ .n1 = 2.0, .n2 = 2.5 },
-        .{ .n1 = 2.5, .n2 = 2.5 },
-        .{ .n1 = 2.5, .n2 = 1.5 },
-        .{ .n1 = 1.5, .n2 = 1.0 },
-    }) |x, index| {
-        const comps = prepareComputationsForRefraction(xs[index], r, xs);
-        try expectEqual(comps.n1, x.n1);
-        try expectEqual(comps.n2, x.n2);
-    }
-}
-
-test "the Schlick approximation under total internal reflection" {
-    const a = @sqrt(2.0);
-    const b = a / 2.0;
-
-    const sphere = sph.Sphere{
-        .common_attrs = .{
-            .material = .{
-                .refractive_index = 1.5,
-                .transparency = 1.0,
-            },
-            .transform = mat.scaling(2, 2, 2),
-        },
-    };
-    const r = ray.Ray{
-        .origin = tup.point(0, 0, b),
-        .direction = tup.vector(0, 1, 0),
-    };
-    const xs = &[_]Intersection{
-        .{
-            .t = -b,
-            .shape_attrs = sphere.common_attrs,
-            .normal = sph.normalAt(sphere, ray.position(r, -b)),
-        },
-        .{
-            .t =  b,
-            .shape_attrs = sphere.common_attrs,
-            .normal = sph.normalAt(sphere, ray.position(r, b)),
-        },
-    };
-    const comps = prepareComputationsForRefraction(xs[1], r, xs);
-
-    const reflectance = schlick(comps);
-    try expectEqual(reflectance, 1.0);
-}
-
-test "the Schlick approximation with a perpendicular viewing angle" {
-    const sphere = sph.Sphere{
-        .common_attrs = .{
-            .material = .{
-                .refractive_index = 1.5,
-                .transparency = 1.0,
-            },
-            .transform = mat.scaling(2, 2, 2),
-        },
-    };
-    const r = ray.Ray{
-        .origin = tup.point(0, 0, 0),
-        .direction = tup.vector(0, 1, 0),
-    };
-    const xs = &[_]Intersection{
-        .{ .t = -1, .shape_attrs = sphere.common_attrs },
-        .{ .t =  1, .shape_attrs = sphere.common_attrs },
-    };
-    const comps = prepareComputationsForRefraction(xs[1], r, xs);
-
-    const reflectance = schlick(comps);
-    try expectApproxEqAbs(reflectance, 0.04, tup.epsilon);
-}
-
-test "the Schlick approximation with small angle and n2 > n1" {
-    const sphere = sph.Sphere{
-        .common_attrs = .{
-            .material = .{
-                .refractive_index = 1.5,
-                .transparency = 1.0,
-            },
-            .transform = mat.scaling(2, 2, 2),
-        },
-    };
-    const r = ray.Ray{
-        .origin = tup.point(0, 0.99, -2),
-        .direction = tup.vector(0, 0, 1),
-    };
-    const t = 1.8589;
-    const xs = &[_]Intersection{
-        .{
-            .t = t,
-            .shape_attrs = sphere.common_attrs,
-            .normal = sph.normalAt(sphere, ray.position(r, t))
-        },
-    };
-    const comps = prepareComputationsForRefraction(xs[0], r, xs);
-
-    const reflectance = schlick(comps);
-    try expectApproxEqAbs(reflectance, 0.48873, tup.epsilon);
 }
