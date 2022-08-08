@@ -2,7 +2,6 @@ const std = @import("std");
 
 pub const mat = @import("matrix.zig");
 pub const obj = @import("obj_file.zig");
-pub const trm = @import("transformation.zig");
 pub const tup = @import("tuple.zig");
 
 pub usingnamespace @import("camera.zig");

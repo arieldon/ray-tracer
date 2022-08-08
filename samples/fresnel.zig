@@ -71,12 +71,10 @@ pub fn main() !void {
     const image_width = 512;
     const image_height = 256;
     const field_of_view = std.math.pi / 2.0;
-    var camera = rt.camera(image_width, image_height, field_of_view);
-
     const from = rt.tup.point(0, 1.5, -15);
     const to = rt.tup.point(0, 1, 0);
     const up = rt.tup.vector(0, 1, 0);
-    camera.transform = rt.trm.viewTransform(from, to, up);
+    var camera = rt.camera(image_width, image_height, field_of_view, from, to, up);
 
     var canvas = try rt.render(allocator, camera, world);
     defer canvas.deinit();

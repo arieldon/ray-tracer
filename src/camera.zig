@@ -1,11 +1,7 @@
 const std = @import("std");
-const expect = std.testing.expect;
-const expectEqual = std.testing.expectEqual;
-const expectApproxEqAbs = std.testing.expectApproxEqAbs;
 const cnv = @import("canvas.zig");
 const mat = @import("matrix.zig");
 const ray = @import("ray.zig");
-const trm = @import("transformation.zig");
 const tup = @import("tuple.zig");
 const wrd = @import("world.zig");
 
@@ -26,7 +22,10 @@ half_height: f64,
 pixel_size: f64,
 transform: mat.Matrix,
 
-pub fn camera(horizontal_size: u32, vertical_size: u32, field_of_view: f64) Camera {
+pub fn camera(
+    horizontal_size: u32, vertical_size: u32, field_of_view: f64,
+    from: tup.Point, to: tup.Point, up: tup.Vector,
+) Camera {
     const h = @intToFloat(f64, horizontal_size);
     const v = @intToFloat(f64, vertical_size);
 
@@ -35,7 +34,7 @@ pub fn camera(horizontal_size: u32, vertical_size: u32, field_of_view: f64) Came
     c.horizontal_size = horizontal_size;
     c.vertical_size = vertical_size;
     c.field_of_view = field_of_view;
-    c.transform = mat.identity;
+    c.transform = transformCameraPerspective(from, to, up);
 
     const half_view = std.math.tan(c.field_of_view / 2.0);
     const aspect_ratio = h / v;
@@ -50,6 +49,23 @@ pub fn camera(horizontal_size: u32, vertical_size: u32, field_of_view: f64) Came
 
     return c;
 }
+
+fn transformCameraPerspective(from: tup.Point, to: tup.Point, up: tup.Vector) mat.Matrix {
+    // Parameter `from` specifies the point *from* which the scene is viewed;
+    // parameter `to` specifies the point at which *to* look; and parameter
+    // `up` specifies which direction is up.
+    const forward = tup.normalize(to - from);
+    const left = tup.cross(forward, tup.normalize(up));
+    const true_up = tup.cross(left, forward);
+    const orientation = mat.Matrix{
+        .{left[0], left[1], left[2], 0},
+        .{true_up[0], true_up[1], true_up[2], 0},
+        .{-forward[0], -forward[1], -forward[2], 0},
+        .{0, 0, 0, 1},
+    };
+    return mat.mul(orientation, mat.translation(-from[0], -from[1], -from[2]));
+}
+
 
 pub fn rayForPixel(c: *const Camera, px: u32, py: u32) ray.Ray {
     const x_offset = (@intToFloat(f64, px) + 0.5) * c.pixel_size;

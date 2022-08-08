@@ -4,10 +4,6 @@ const rt = @import("ray-tracer");
 pub fn main() !void {
     const allocator = std.heap.page_allocator;
 
-    const image_width = 1024;
-    const image_height = 1024;
-    const field_of_view = std.math.pi / 3.0;
-
     const floor = rt.Plane{
         .common_attrs = .{
             .material = .{
@@ -38,9 +34,14 @@ pub fn main() !void {
         .planes = &.{ floor },
     };
 
-    var camera = rt.camera(image_width, image_height, field_of_view);
-    camera.transform = rt.trm.viewTransform(
-        rt.tup.point(0, 1.5, -5), rt.tup.point(0, 1, 0), rt.tup.vector(0, 1, 0));
+
+    const image_width = 1024;
+    const image_height = 1024;
+    const field_of_view = std.math.pi / 3.0;
+    const from = rt.tup.point(0, 1.5, -5);
+    const to = rt.tup.point(0, 1, 0);
+    const up = rt.tup.vector(0, 1, 0);
+    var camera = rt.camera(image_width, image_height, field_of_view, from, to, up);
 
     var canvas = try rt.render(allocator, camera, world);
     defer canvas.deinit();

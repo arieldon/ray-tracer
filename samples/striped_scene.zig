@@ -4,11 +4,6 @@ const rt = @import("ray-tracer");
 pub fn main() !void {
     const allocator = std.heap.page_allocator;
 
-    // Define image properties.
-    const image_width = 1024;
-    const image_height = 1024;
-    const field_of_view = std.math.pi / 2.0;
-
     const blue = rt.Color{0.05, 0.25, 1};
     const orange = rt.Color{1, 0.5, 0.25};
 
@@ -50,9 +45,13 @@ pub fn main() !void {
     };
 
     // Create a camera to view and render the scene.
-    var camera = rt.camera(image_width, image_height, field_of_view);
-    camera.transform = rt.trm.viewTransform(
-        rt.tup.point(0, 1.5, -5), rt.tup.point(0, 1, 0), rt.tup.vector(0, 1, 0));
+    const image_width = 1024;
+    const image_height = 1024;
+    const field_of_view = std.math.pi / 2.0;
+    const from = rt.tup.point(0, 1.5, -5);
+    const to = rt.tup.point(0, 1, 0);
+    const up = rt.tup.point(0, 1, 0);
+    var camera = rt.camera(image_width, image_height, field_of_view, from, to, up);
 
     // Render the scene onto a canvas.
     var canvas = try rt.render(allocator, camera, world);
