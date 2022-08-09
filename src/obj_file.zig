@@ -102,9 +102,9 @@ pub fn parseObjFile(allocator: std.mem.Allocator, file: std.fs.File) !ObjFile {
 
             switch (literal[0]) {
                 'v' => {
-                    const x = try std.fmt.parseFloat(f64, try getLiteral(&literals));
-                    const y = try std.fmt.parseFloat(f64, try getLiteral(&literals));
-                    const z = try std.fmt.parseFloat(f64, try getLiteral(&literals));
+                    const x = try std.fmt.parseFloat(f32, try getLiteral(&literals));
+                    const y = try std.fmt.parseFloat(f32, try getLiteral(&literals));
+                    const z = try std.fmt.parseFloat(f32, try getLiteral(&literals));
                     try obj.vertices.append(tup.point(x, y, z));
                 },
                 'f' => {

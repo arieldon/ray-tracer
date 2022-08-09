@@ -7,8 +7,8 @@ const tup = @import("tuple.zig");
 
 pub const Cylinder = struct {
     common_attrs: shp.CommonShapeAttributes = .{},
-    minimum: f64 = -std.math.inf_f64,
-    maximum: f64 = std.math.inf_f64,
+    minimum: f32 = -std.math.inf_f32,
+    maximum: f32 = std.math.inf_f32,
     closed: bool = false,
 
     pub fn intersect(self: Cylinder, r: ray.Ray, xs: *std.ArrayList(int.Intersection)) !void {
@@ -18,7 +18,7 @@ pub const Cylinder = struct {
         // walls of the cylinder at any point. It may however intersect its caps.
         const a = r_prime.direction[0] * r_prime.direction[0] +
                   r_prime.direction[2] * r_prime.direction[2];
-        if (std.math.approxEqAbs(f64, a, 0, tup.epsilon)) {
+        if (std.math.approxEqAbs(f32, a, 0, tup.epsilon)) {
             try self.intersectCaps(r_prime, xs);
             return;
         }
@@ -35,14 +35,14 @@ pub const Cylinder = struct {
 
         var t0 = (-b - @sqrt(discriminant)) / (2 * a);
         var t1 = (-b + @sqrt(discriminant)) / (2 * a);
-        if (t0 > t1) std.mem.swap(f64, &t0, &t1);
+        if (t0 > t1) std.mem.swap(f32, &t0, &t1);
 
-        const y0 = @mulAdd(f64, t0, r_prime.direction[1], r_prime.origin[1]);
+        const y0 = @mulAdd(f32, t0, r_prime.direction[1], r_prime.origin[1]);
         if (self.minimum < y0 and y0 < self.maximum) {
             try xs.append(int.Intersection{ .t = t0, .shape = .{ .cylinder = self } });
         }
 
-        const y1 = @mulAdd(f64, t1, r_prime.direction[1], r_prime.origin[1]);
+        const y1 = @mulAdd(f32, t1, r_prime.direction[1], r_prime.origin[1]);
         if (self.minimum < y1 and y1 < self.maximum) {
             try xs.append(int.Intersection{ .t = t1, .shape = .{ .cylinder = self } });
         }
@@ -53,7 +53,7 @@ pub const Cylinder = struct {
     fn intersectCaps(self: Cylinder, r_prime: ray.Ray, xs: *std.ArrayList(int.Intersection)) !void {
         // Caps only exist on a closed cylinder. They're also only relevant if the
         // ray may intersect them at some point.
-        if (!self.closed or std.math.approxEqAbs(f64, r_prime.direction[1], 0, tup.epsilon)) return;
+        if (!self.closed or std.math.approxEqAbs(f32, r_prime.direction[1], 0, tup.epsilon)) return;
 
         // Check for intersection between ray and lower cap by intersecting the ray
         // with the plane that functions as this cap.
@@ -92,10 +92,10 @@ pub const Cylinder = struct {
     }
 };
 
-fn checkCap(r: ray.Ray, t: f64) bool {
+fn checkCap(r: ray.Ray, t: f32) bool {
     // Check if the intersection at `t` is within the radius of the unit
     // cylinder from the y-axis.
-    const x = @mulAdd(f64, t, r.direction[0], r.origin[0]);
-    const z = @mulAdd(f64, t, r.direction[2], r.origin[2]);
+    const x = @mulAdd(f32, t, r.direction[0], r.origin[0]);
+    const z = @mulAdd(f32, t, r.direction[2], r.origin[2]);
     return (x * x + z * z) <= 1;
 }

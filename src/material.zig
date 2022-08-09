@@ -11,30 +11,30 @@ color: cnv.Color = cnv.Color{1, 1, 1},
 pattern: ?pat.Pattern = null,
 
 // Ambient reflection is background lighting.
-ambient: f64 = 0.1,
+ambient: f32 = 0.1,
 
 // Diffuse reflection is light reflected from a matte surface.
-diffuse: f64 = 0.9,
+diffuse: f32 = 0.9,
 
 // Specular reflection is the reflection of the light source itself.
-specular: f64 = 0.9,
+specular: f32 = 0.9,
 
 // Parameter for size of specular highlight: the bright spot on curved surface.
-shininess: f64 = 200.0,
+shininess: f32 = 200.0,
 
 // 0 defines a nonreflective material and 1 creates a perfect mirror.
-reflective: f64 = 0.0,
+reflective: f32 = 0.0,
 
 // Determine degree light bends when entering or exiting this material. As
 // this parameter increases, the angle at which light bends when it
 // intersects this material also increases. The refractive index of a
 // vacuum is 1. In physics, it is defined as the ratio between the speed of
 // light in a vacuum (c) and the speed of light in the given material (v).
-refractive_index: f64 = 1.0,
+refractive_index: f32 = 1.0,
 
 // Control the transparency of the material. 0 defines an opaque material
 // and 1 defines a perfectly transparent material.
-transparency: f64 = 0.0,
+transparency: f32 = 0.0,
 
 // Use the Phong reflection model.
 pub fn lighting(
@@ -93,7 +93,7 @@ pub fn lighting(
             // away from the eye.
             specular = cnv.Color{0, 0, 0};
         } else {
-            const factor = std.math.pow(f64, cos_reflect_eye, material.shininess);
+            const factor = std.math.pow(f32, cos_reflect_eye, material.shininess);
             specular = light.intensity * @splat(3, material.specular) * @splat(3, factor);
         }
     }

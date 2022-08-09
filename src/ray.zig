@@ -6,7 +6,7 @@ pub const Ray = struct {
     origin: tup.Point,
     direction: tup.Vector,
 
-    pub fn position(r: Ray, t: f64) tup.Point {
+    pub fn position(r: Ray, t: f32) tup.Point {
         return r.origin + r.direction * @splat(4, t);
     }
 

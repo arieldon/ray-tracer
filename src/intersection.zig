@@ -7,7 +7,7 @@ const tup = @import("tuple.zig");
 const wrd = @import("world.zig");
 
 pub const Intersection = struct {
-    t: f64,
+    t: f32,
     shape: shp.Shape,
 };
 
@@ -28,15 +28,15 @@ pub fn hit(xs: []Intersection) ?Intersection {
 }
 
 pub const Computation = struct {
-    t: f64,
+    t: f32,
     shape_attrs: shp.CommonShapeAttributes,
 
     point: tup.Point,
     eye: tup.Vector,
     normal: tup.Vector,
 
-    n1: f64,
-    n2: f64,
+    n1: f32,
+    n2: f32,
     reflect: tup.Vector,
 };
 
@@ -158,7 +158,7 @@ pub fn prepareComputationsForRefraction(i: Intersection, r: ray.Ray, xs: []Inter
     return comps;
 }
 
-pub fn schlick(comps: Computation) f64 {
+pub fn schlick(comps: Computation) f32 {
     // Schlick's approximation serves as an approximation for the Fresnel
     // equation, which determines the amounts of light reflected and refracted
     // at an intersection.
@@ -176,5 +176,5 @@ pub fn schlick(comps: Computation) f64 {
         cos = @sqrt(1.0 - sin2_t);
     }
 
-    return r0 + (1 - r0) * std.math.pow(f64, 1 - cos, 5);
+    return r0 + (1 - r0) * std.math.pow(f32, 1 - cos, 5);
 }

@@ -52,7 +52,7 @@ fn shadeHit(world: *const World, comps: int.Computation) cnv.Color {
 }
 
 fn shadeHitInternal(world: *const World, comps: int.Computation, remaining: usize) cnv.Color {
-    const over_point = comps.point + comps.normal * @splat(4, @as(f64, tup.epsilon));
+    const over_point = comps.point + comps.normal * @splat(4, tup.epsilon * 100.0);
     const shadowed = isShadowed(world, over_point);
     const surface = mtl.lighting(
         comps.shape_attrs,
@@ -72,7 +72,7 @@ fn shadeHitInternal(world: *const World, comps: int.Computation, remaining: usiz
     if (material.reflective > 0 and material.transparency > 0) {
         const reflectance = @splat(3, int.schlick(comps));
         return surface + reflected * reflectance +
-                         refracted * (@splat(3, @as(f64, 1.0)) - reflectance);
+                         refracted * (@splat(3, @as(f32, 1.0)) - reflectance);
     }
 
     return surface + reflected + refracted;
@@ -134,7 +134,7 @@ fn reflectedColorInternal(world: *const World, comps: int.Computation, remaining
     if (comps.shape_attrs.material.reflective == 0) return black;
 
     const reflect_ray = ray.Ray{
-        .origin = comps.point + comps.normal * @splat(4, @as(f64, tup.epsilon)),
+        .origin = comps.point + comps.normal * @splat(4, tup.epsilon * 100.0),
         .direction = comps.reflect,
     };
     const color = colorAtInternal(world, reflect_ray, remaining - 1);
@@ -177,7 +177,7 @@ fn refractedColorInternal(world: *const World, comps: int.Computation, remaining
     const cos_t = @sqrt(1.0 - sin2_t);
 
     const refract_ray = ray.Ray{
-        .origin = comps.point - comps.normal * @splat(4, @as(f64, tup.epsilon)),
+        .origin = comps.point - comps.normal * @splat(4, tup.epsilon * 100.0),
         .direction = comps.normal * @splat(4, n_ratio * cos_i - cos_t) - comps.eye * @splat(4, n_ratio),
     };
 

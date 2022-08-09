@@ -3,7 +3,7 @@ const expectEqual = std.testing.expectEqual;
 const expectEqualStrings = std.testing.expectEqualStrings;
 const tuple = @import("tuple.zig");
 
-pub const Color = @Vector(3, f64);
+pub const Color = @Vector(3, f32);
 
 pub const Canvas = @This();
 

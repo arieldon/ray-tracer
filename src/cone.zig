@@ -7,8 +7,8 @@ const tup = @import("tuple.zig");
 
 pub const Cone = struct {
     common_attrs: shp.CommonShapeAttributes = .{},
-    minimum: f64 = -std.math.inf_f64,
-    maximum: f64 = std.math.inf_f64,
+    minimum: f32 = -std.math.inf_f32,
+    maximum: f32 = std.math.inf_f32,
     closed: bool = false,
 
     pub fn intersect(self: Cone, r: ray.Ray, xs: *std.ArrayList(int.Intersection)) !void {
@@ -27,8 +27,8 @@ pub const Cone = struct {
         // When a is zero, the ray is parallel to one of the cone's inward facing
         // edges. In this case, the ray may still intersect the other half of the
         // cone.
-        if (std.math.approxEqAbs(f64, a, 0, tup.epsilon)) {
-            if (std.math.approxEqAbs(f64, b, 0, tup.epsilon)) {
+        if (std.math.approxEqAbs(f32, a, 0, tup.epsilon)) {
+            if (std.math.approxEqAbs(f32, b, 0, tup.epsilon)) {
                 // Ray misses the cone entirely when both a and b are zero.
                 try self.intersectCaps(r_prime, xs);
                 return;
@@ -48,14 +48,14 @@ pub const Cone = struct {
 
         var t0 = (-b - @sqrt(discriminant)) / (2 * a);
         var t1 = (-b + @sqrt(discriminant)) / (2 * a);
-        if (t0 > t1) std.mem.swap(f64, &t0, &t1);
+        if (t0 > t1) std.mem.swap(f32, &t0, &t1);
 
-        const y0 = @mulAdd(f64, t0, r_prime.direction[1], r_prime.origin[1]);
+        const y0 = @mulAdd(f32, t0, r_prime.direction[1], r_prime.origin[1]);
         if (self.minimum < y0 and y0 < self.maximum) {
             try xs.append(int.Intersection{ .t = t0, .shape = .{ .cone = self } });
         }
 
-        const y1 = @mulAdd(f64, t1, r_prime.direction[1], r_prime.origin[1]);
+        const y1 = @mulAdd(f32, t1, r_prime.direction[1], r_prime.origin[1]);
         if (self.minimum < y1 and y1 < self.maximum) {
             try xs.append(int.Intersection{ .t = t1, .shape = .{ .cone = self } });
         }
@@ -64,7 +64,7 @@ pub const Cone = struct {
     }
 
     fn intersectCaps(self: Cone, r_prime: ray.Ray, xs: *std.ArrayList(int.Intersection)) !void {
-        if (!self.closed or std.math.approxEqAbs(f64, r_prime.direction[1], 0, tup.epsilon)) return;
+        if (!self.closed or std.math.approxEqAbs(f32, r_prime.direction[1], 0, tup.epsilon)) return;
 
         // Check for intersection between ray and lower cap by intersecting the ray
         // with the plane that functions as this cap.
@@ -105,10 +105,10 @@ pub const Cone = struct {
     }
 };
 
-fn checkCap(r: ray.Ray, t: f64, y: f64) bool {
+fn checkCap(r: ray.Ray, t: f32, y: f32) bool {
     // Check if the intersection at `t` is within the radius of the cone on the
     // y-axis.
-    const x = @mulAdd(f64, t, r.direction[0], r.origin[0]);
-    const z = @mulAdd(f64, t, r.direction[2], r.origin[2]);
+    const x = @mulAdd(f32, t, r.direction[0], r.origin[0]);
+    const z = @mulAdd(f32, t, r.direction[2], r.origin[2]);
     return (x * x + z * z) <= @fabs(y * y);
 }

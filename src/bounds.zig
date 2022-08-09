@@ -47,8 +47,8 @@ inline fn boundSphere(sphere: sph.Sphere) Bounds {
 inline fn boundPlane(plane: pln.Plane) Bounds {
     _ = plane;
     return .{
-        .minimum = tup.point(-std.math.inf_f64, 0, -std.math.inf_f64),
-        .maximum = tup.point(std.math.inf_f64, 0, std.math.inf_f64),
+        .minimum = tup.point(-std.math.inf_f32, 0, -std.math.inf_f32),
+        .maximum = tup.point(std.math.inf_f32, 0, std.math.inf_f32),
     };
 }
 
@@ -84,8 +84,8 @@ inline fn boundTriangle(triangle: tri.Triangle) Bounds {
 
 pub fn boundGroup(group: *const grp.Group) Bounds {
     var group_bounds = Bounds{
-        .minimum = tup.point(std.math.inf_f64, std.math.inf_f64, std.math.inf_f64),
-        .maximum = tup.point(-std.math.inf_f64, -std.math.inf_f64, -std.math.inf_f64),
+        .minimum = tup.point(std.math.inf_f32, std.math.inf_f32, std.math.inf_f32),
+        .maximum = tup.point(-std.math.inf_f32, -std.math.inf_f32, -std.math.inf_f32),
     };
 
     for (group.spheres.items) |sphere|
@@ -142,8 +142,8 @@ fn transformGroupBounds(group: *grp.Group, transform: mat.Matrix) Bounds {
 }
 
 const TMinMax = struct {
-    tmin: f64,
-    tmax: f64,
+    tmin: f32,
+    tmax: f32,
 };
 
 pub fn intersect(bounds: Bounds, r: ray.Ray) bool {
@@ -157,18 +157,18 @@ pub fn intersect(bounds: Bounds, r: ray.Ray) bool {
     return tmin <= tmax;
 }
 
-fn checkAxis(min: f64, max: f64, origin: f64, direction: f64) TMinMax {
+fn checkAxis(min: f32, max: f32, origin: f32, direction: f32) TMinMax {
     const tmin_numerator = min - origin;
     const tmax_numerator = max - origin;
 
-    var tmin: f64 = undefined;
-    var tmax: f64 = undefined;
+    var tmin: f32 = undefined;
+    var tmax: f32 = undefined;
     if (@fabs(direction) >= tup.epsilon) {
         tmin = tmin_numerator / direction;
         tmax = tmax_numerator / direction;
     } else {
-        tmin = tmin_numerator * std.math.inf_f64;
-        tmax = tmax_numerator * std.math.inf_f64;
+        tmin = tmin_numerator * std.math.inf_f32;
+        tmax = tmax_numerator * std.math.inf_f32;
     }
 
     return if (tmin > tmax) .{ .tmin = tmax, .tmax = tmin } else .{ .tmin = tmin, .tmax = tmax };

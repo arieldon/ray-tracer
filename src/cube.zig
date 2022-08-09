@@ -45,22 +45,22 @@ pub const Cube = struct {
 };
 
 const TMinMax = struct {
-    tmin: f64,
-    tmax: f64,
+    tmin: f32,
+    tmax: f32,
 };
 
-fn checkAxis(origin: f64, direction: f64) TMinMax {
+fn checkAxis(origin: f32, direction: f32) TMinMax {
     const tmin_numerator = -1 - origin;
     const tmax_numerator = 1 - origin;
 
-    var tmin: f64 = undefined;
-    var tmax: f64 = undefined;
+    var tmin: f32 = undefined;
+    var tmax: f32 = undefined;
     if (@fabs(direction) >= tup.epsilon) {
         tmin = tmin_numerator / direction;
         tmax = tmax_numerator / direction;
     } else {
-        tmin = tmin_numerator * std.math.inf_f64;
-        tmax = tmax_numerator * std.math.inf_f64;
+        tmin = tmin_numerator * std.math.inf_f32;
+        tmax = tmax_numerator * std.math.inf_f32;
     }
 
     return if (tmin > tmax) .{ .tmin = tmax, .tmax = tmin } else .{ .tmin = tmin, .tmax = tmax };

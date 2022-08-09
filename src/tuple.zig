@@ -3,21 +3,21 @@ const expect = std.testing.expect;
 const expectEqual = std.testing.expectEqual;
 const expectApproxEqAbs = std.testing.expectApproxEqAbs;
 
-pub const Tuple = @Vector(4, f64);
+pub const Tuple = @Vector(4, f32);
 pub const Vector = Tuple;
 pub const Point = Tuple;
 
-pub const epsilon = 0.00001;
+pub const epsilon: f32 = 0.00001;
 
-pub fn tuple(x: f64, y: f64, z: f64, w: f64) Tuple {
+pub fn tuple(x: f32, y: f32, z: f32, w: f32) Tuple {
     return .{ x, y, z, w };
 }
 
-pub fn point(x: f64, y: f64, z: f64) Point {
+pub fn point(x: f32, y: f32, z: f32) Point {
     return .{ x, y, z, 1 };
 }
 
-pub fn vector(x: f64, y: f64, z: f64) Vector {
+pub fn vector(x: f32, y: f32, z: f32) Vector {
     return .{ x, y, z, 0 };
 }
 
@@ -32,10 +32,10 @@ pub fn isVector(t: Tuple) bool {
 pub fn equal(a: Tuple, b: Tuple) bool {
     // NOTE: This isn't a very precise equality test, especially as values
     // approach zero, but it serves its purpose, at least for now.
-    return @reduce(.And, @fabs(a - b) <= @splat(4, @as(f64, epsilon)));
+    return @reduce(.And, @fabs(a - b) <= @splat(4, @as(f32, epsilon)));
 }
 
-pub fn dot(u: Vector, v: Vector) f64 {
+pub fn dot(u: Vector, v: Vector) f32 {
     return u[0] * v[0] + u[1] * v[1] + u[2] * v[2] + u[3] * v[3];
 }
 
@@ -47,7 +47,7 @@ pub fn cross(u: Vector, v: Vector) Vector {
     };
 }
 
-pub fn magnitude(v: Vector) f64 {
+pub fn magnitude(v: Vector) f32 {
     return @sqrt(dot(v, v));
 }
 
@@ -73,7 +73,7 @@ pub fn reflect(incident: Vector, normal: Vector) Vector {
     // Calculate the direction of the reflected ray. Assuming a normalized
     // incident vector (as mentioned in the previous comment) this computation
     // also yields a normalized vector.
-    return incident - @splat(4, @as(f64, 2.0)) * orthogonal_component;
+    return incident - @splat(4, @as(f32, 2.0)) * orthogonal_component;
 }
 
 test "a tuple with w=1.0 is a point" {
@@ -147,17 +147,17 @@ test "negating a tuple" {
 
 test "multiplying a tuple by a scalar" {
     const a = tuple(1, -2, 3, -4);
-    try expectEqual(a * @splat(4, @as(f64, 3.5)), tuple(3.5, -7, 10.5, -14));
+    try expectEqual(a * @splat(4, @as(f32, 3.5)), tuple(3.5, -7, 10.5, -14));
 }
 
 test "multiplying a tuple by a fraction" {
     const a = tuple(1, -2, 3, -4);
-    try expectEqual(a * @splat(4, @as(f64, 0.5)), tuple(0.5, -1, 1.5, -2));
+    try expectEqual(a * @splat(4, @as(f32, 0.5)), tuple(0.5, -1, 1.5, -2));
 }
 
 test "dividing a tuple by a scalar" {
     const a = tuple(1, -2, 3, -4);
-    try expectEqual(a / @splat(4, @as(f64, 2)), tuple(0.5, -1, 1.5, -2));
+    try expectEqual(a / @splat(4, @as(f32, 2)), tuple(0.5, -1, 1.5, -2));
 }
 
 test "the dot product of two tuples" {
@@ -201,9 +201,9 @@ test "normalizing vector(1, 2, 3)" {
     const a = @sqrt(14.0);
     const e = 0.00001;
 
-    try expectApproxEqAbs(@floatCast(f64, 1 / a), v[0], e);
-    try expectApproxEqAbs(@floatCast(f64, 2 / a), v[1], e);
-    try expectApproxEqAbs(@floatCast(f64, 3 / a), v[2], e);
+    try expectApproxEqAbs(@floatCast(f32, 1 / a), v[0], e);
+    try expectApproxEqAbs(@floatCast(f32, 2 / a), v[1], e);
+    try expectApproxEqAbs(@floatCast(f32, 3 / a), v[2], e);
 }
 
 test "the magnitude of a normalized vector" {
